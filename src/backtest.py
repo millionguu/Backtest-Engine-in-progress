@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from market import Market
 from portfolio import Portfolio
 from analysis import Analysis
-from strategy import BuyAllAtFirstDay, OrderType
+from strategy import BuyAllAtFirstDay, OrderType, RandomBuyAndSell
 
 
 class BackTest:
@@ -41,7 +41,8 @@ if __name__ == "__main__":
     securities = ["IXIC"]
 
     portfolio = Portfolio(1000.0, start_date, end_date)
-    strategy = BuyAllAtFirstDay(portfolio)
+    # strategy = BuyAllAtFirstDay(portfolio)
+    strategy = RandomBuyAndSell(portfolio)
     market = Market(securities)
     backtest = BackTest(portfolio, strategy, market)
 

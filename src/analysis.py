@@ -14,8 +14,7 @@ class Analysis:
         self.ax = ax
 
     def draw(self, draw_benchmark=True):
-        for security in self.portfolio.hold_securities():
-            self.ax[0].plot(self.portfolio.security_book[security]["value"])
+        self.ax[0].plot(self.portfolio.value_book["value"])
         if draw_benchmark:
             self.draw_benchmark()
         plt.show()
