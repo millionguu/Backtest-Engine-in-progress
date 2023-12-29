@@ -16,38 +16,39 @@ class Order:
     weight: float = 0.0
 
 
+# TODO: strategy should be composable?
 class Strategy:
-    def __init__(self, portfolio, target_security):
+    def __init__(self, portfolio):
         pass
 
-    def get_order(self, cur_date):
+    def get_order(self, target_security, cur_date):
         pass
 
 
-class BuyAllAtFirstDay(Strategy):
+class NoStrategy(Strategy):
     def __init__(self, portfolio):
         self.portfolio = portfolio
 
-    def get_order(self, target_security: str, cur_date):
-        if cur_date == self.portfolio.start_date:
-            return Order(OrderType.BUY, target_security, 1)
-        else:
-            return Order(OrderType.NOOP)
+    def get_order(self, target_security, cur_date):
+        return Order(OrderType.NOOP)
 
 
 class RandomBuyAndSell(Strategy):
     def __init__(self, portfolio):
         self.portfolio = portfolio
         self.state = True
+        self.target_security = "RUT"
 
-    def get_order(self, target_security: str, cur_date):
-        rand = random.random()
-        if rand > 0.99:
+    def get_order(self, target_security, cur_date):
+        if target_security == self.target_security and random.random() > 0.7:
             if self.state:
                 self.state = not (self.state)
-                return Order(OrderType.BUY, target_security, 1)
+                return Order(OrderType.BUY, target_security, 0.1)
             else:
                 self.state = not (self.state)
-                return Order(OrderType.SELL, target_security, 1)
-        else:
-            return Order(OrderType.NOOP)
+                return Order(OrderType.SELL, target_security, 0.1)
+        return Order(OrderType.NOOP)
+
+
+class StopGainAndLoss(Strategy):
+    pass

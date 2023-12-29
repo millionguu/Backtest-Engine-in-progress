@@ -1,4 +1,3 @@
-from datetime import date
 import os
 import pathlib
 import numpy as np
@@ -31,16 +30,13 @@ def get_market_open_date(engine, table, start_date, end_date):
 
 
 if __name__ == "__main__":
-    filename = "^IXIC"
-    table = "IXIC"
     path = os.path.join(pathlib.Path(__file__).parent.parent, "data.db")
     engine = create_engine("sqlite:///" + path)
-    start_date = date.fromisoformat("2022-01-01")
-    end_date = date.fromisoformat("2022-12-01")
     with engine.connect() as conn, conn.begin():
         # write_market_open_date(engine, filename, "us_market_date")
-        a = get_market_open_date(engine, "us_market_date", start_date, end_date)
 
-        # conn.execute(text(f"drop table if exists {table};"))
-        # write_yahoo_finance_source_to_sqlite(engine, filename, table)
-        # pd.read_sql(f"select * from {table}", engine)
+        filename = "^RUT"
+        table = "RUT"
+        conn.execute(text(f"drop table if exists {table};"))
+        write_yahoo_finance_source_to_sqlite(engine, filename, table)
+        pd.read_sql(f"select * from {table}", engine)

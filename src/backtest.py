@@ -1,8 +1,4 @@
-from datetime import date, timedelta
-from market import Market
-from portfolio import Portfolio
-from analysis import Analysis
-from strategy import BuyAllAtFirstDay, OrderType, RandomBuyAndSell
+from strategy import OrderType
 
 
 class BackTest:
@@ -21,32 +17,15 @@ class BackTest:
         for security in self.market.securities:
             order = self.strategy.get_order(security, self.cur_date)
             if order.type == OrderType.BUY:
-                portfolio.add_security_weight(
+                self.portfolio.add_security_weight(
                     order.security, order.weight, self.cur_date
                 )
             elif order.type == OrderType.SELL:
-                portfolio.reduce_security_weight(
+                self.portfolio.reduce_security_weight(
                     order.security, order.weight, self.cur_date
                 )
             else:
                 pass
-            daily_return = market.query_return(security, self.cur_date)
-            portfolio.update_security_value(security, self.cur_date, daily_return)
-        portfolio.update_portfolio(self.cur_date)
-
-
-if __name__ == "__main__":
-    start_date = date.fromisoformat("2022-01-01")
-    end_date = date.fromisoformat("2022-12-01")
-    securities = ["IXIC"]
-
-    portfolio = Portfolio(1000.0, start_date, end_date)
-    # strategy = BuyAllAtFirstDay(portfolio)
-    strategy = RandomBuyAndSell(portfolio)
-    market = Market(securities)
-    backtest = BackTest(portfolio, strategy, market)
-
-    backtest.run()
-
-    analysis = Analysis(portfolio, "IXIC", start_date, end_date)
-    analysis.draw()
+            daily_return = self.market.query_return(security, self.cur_date)
+            self.portfolio.update_security_value(security, self.cur_date, daily_return)
+        self.portfolio.update_portfolio(self.cur_date)
