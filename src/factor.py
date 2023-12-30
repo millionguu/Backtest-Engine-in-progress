@@ -14,7 +14,7 @@ class DummyFactor(Factor):
         super().__init__()
 
     def get_position(self):
-        return [("SPX", 0.6), ("IXIC", 0.1), ("RUT", 0.1)]
+        return [("SPX", 0.1), ("IXIC", 0.8), ("RUT", 0.1)]
 
     def set_portfolio(self, portfolio):
         for security, weight in self.get_position():
