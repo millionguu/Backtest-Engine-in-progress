@@ -57,7 +57,7 @@ class StopGainAndLoss(Strategy):
     def __init__(self, portfolio, blacklist):
         super().__init__(portfolio, blacklist)
 
-    def set_limit(self, gain_limit=0.3, loss_limit=0.3):
+    def set_limit(self, gain_limit=1, loss_limit=1):
         self.gain_limit = gain_limit
         self.loss_limit = -abs(loss_limit)
 
