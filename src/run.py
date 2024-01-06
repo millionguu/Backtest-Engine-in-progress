@@ -2,7 +2,8 @@ from datetime import date
 from market import Market
 from portfolio import Portfolio
 from analysis import Analysis, Benchmark, Metric
-from strategy import NoStrategy, RandomBuyAndSell
+from rebalance import Rebalance
+from strategy import NoStrategy, StopGainAndLoss
 from backtest import BackTest
 from factor import DummyFactor
 
@@ -14,11 +15,15 @@ monitor_securities = ["SPX", "IXIC", "RUT"]
 factor = DummyFactor()
 portfolio = Portfolio(100.0, start_date, end_date)
 factor.set_portfolio(portfolio)
-strategy = NoStrategy(portfolio)
-# strategy = RandomBuyAndSell(portfolio)
 market = Market(monitor_securities)
-backtest = BackTest(portfolio, strategy, market)
 
+blacklist = []
+# strategy = NoStrategy(portfolio, blacklist)
+strategy = StopGainAndLoss(portfolio, blacklist)
+strategy.set_limit(0.3, 0.3)
+rebalance = Rebalance(180, portfolio, factor, blacklist)
+
+backtest = BackTest(portfolio, strategy, market, rebalance)
 backtest.run()
 
 benchmark = Benchmark("SPX", start_date, end_date).get_performance()
