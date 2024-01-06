@@ -26,6 +26,7 @@ class Rebalance:
 
         # sold first and then buy
         position_change.sort(key=lambda p: p[1])
+        print(f"rebalance on {cur_date}: {position_change}")
 
         for security, weight_change in position_change:
             if weight_change < 0:

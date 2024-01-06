@@ -56,6 +56,7 @@ class RandomBuyAndSell(Strategy):
 class StopGainAndLoss(Strategy):
     def __init__(self, portfolio, blacklist):
         super().__init__(portfolio, blacklist)
+        self.set_limit()
 
     def set_limit(self, gain_limit=1, loss_limit=1):
         self.gain_limit = gain_limit
