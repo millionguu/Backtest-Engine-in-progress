@@ -22,7 +22,7 @@ class Analysis:
 
 class Benchmark:
     def __init__(self, benchmark, start_date, end_date):
-        self.benchmark = benchmark
+        self.benchmark = benchmark if not benchmark.startswith("^") else benchmark[1:]
         self.start_date = start_date
         self.end_date = end_date
 
@@ -32,7 +32,7 @@ class Benchmark:
         condition = (df["date"] >= self.start_date) & (df["date"] <= self.end_date)
         benchmark = df[condition]["adj close"].reset_index().drop(columns=["index"])
         benchmark = benchmark.rename(columns={"adj close": "value"})
-        benchmark = benchmark / benchmark["value"][0] * 100
+        benchmark = benchmark / benchmark["value"].iloc[0] * 100
         return benchmark
 
 
@@ -67,4 +67,3 @@ class Metric:
 
     def information_coefficient(self):
         pass
-        

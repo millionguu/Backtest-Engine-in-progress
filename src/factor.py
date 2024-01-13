@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class Factor(ABC):
     @abstractmethod
-    def __init__(self):
+    def __init__(self, security_universe):
         pass
 
     @abstractmethod
@@ -16,12 +16,13 @@ class Factor(ABC):
 
 
 class DummyFactor(Factor):
-    def __init__(self):
-        pass
+    def __init__(self, security_universe):
+        self.security_universe = security_universe
 
     def get_position(self):
-        weight = 0.9 / 3
-        return [("SPX", weight), ("IXIC", weight), ("RUT", weight)]
+        weight = 1 / len(self.security_universe)
+        weight = round(weight, 2)
+        return [(security, weight) for security in self.security_universe]
 
     def set_portfolio(self, portfolio):
         for security, weight in self.get_position():

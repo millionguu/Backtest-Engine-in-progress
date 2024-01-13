@@ -10,12 +10,12 @@ from factor import DummyFactor
 
 start_date = date.fromisoformat("2023-01-01")
 end_date = date.fromisoformat("2023-12-21")
-monitor_securities = ["SPX", "IXIC", "RUT"]
+security_universe = ["^SPX", "^IXIC", "^RUT", "QQQ"]
 
-factor = DummyFactor()
+market = Market(security_universe)
+factor = DummyFactor(security_universe)
 portfolio = Portfolio(100.0, start_date, end_date)
 factor.set_portfolio(portfolio)
-market = Market(monitor_securities)
 
 blacklist = []
 # strategy = NoStrategy(portfolio, blacklist)
@@ -25,8 +25,7 @@ rebalance = Rebalance(180, portfolio, factor, blacklist)
 
 backtest = BackTest(portfolio, strategy, market, rebalance)
 backtest.run()
-
-benchmark = Benchmark("SPX", start_date, end_date).get_performance()
+benchmark = Benchmark("^SPX", start_date, end_date).get_performance()
 
 metric = Metric(portfolio, benchmark)
 print(f"portfolio annulized return: {metric.annualized_return()}")
