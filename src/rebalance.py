@@ -12,7 +12,13 @@ class Rebalance:
         if self.disable_rebalance:
             return
         postition = self.factor.get_position()
-        weight = 0.9 / max(1, len(postition) - len(self.blacklist))
+        optimal_split = 1 / max(1, len(postition) - len(self.blacklist))
+        suboptimal_split = round(optimal_split, 2)
+        weight = (
+            suboptimal_split
+            if suboptimal_split < optimal_split
+            else suboptimal_split - 0.01
+        )
         postition = [
             (p, weight) if p not in self.blacklist else (p, 0) for p, w in postition
         ]

@@ -68,8 +68,7 @@ class StopGainAndLoss(Strategy):
         if cur_value == 0:
             return Order(OrderType.NOOP)
 
-        # previous rebalance date?
-        # previous min/max day?
+        # previous rebalance date
         start_value = security_book[security_book["date"] == prev_rebalance_date][
             "value"
         ].iloc[0]
