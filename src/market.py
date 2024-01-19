@@ -1,17 +1,14 @@
-import os
-import pathlib
 import time
 import numpy as np
 import pandas as pd
-import yfinance as yf
-from sqlalchemy import create_engine
 import sqlalchemy
+import yfinance
+
+from database import engine
 
 
 class Market:
     def __init__(self, securities):
-        path = os.path.join(pathlib.Path(__file__).parent.parent, "data.db")
-        self.engine = create_engine("sqlite:///" + path)
         self.securities = securities
         self.data = dict()
         for security in self.securities:
@@ -26,7 +23,9 @@ class Market:
     def retrive_data_from_yfinance(self, security):
         # need proxy
         proxy = "http://127.0.0.1:1080"
-        data = yf.download(security, start="2000-01-01", end="2023-12-31", proxy=proxy)
+        data = yfinance.download(
+            security, start="2000-01-01", end="2023-12-31", proxy=proxy
+        )
         data["return"] = np.divide(
             data["Adj Close"] - data["Adj Close"].shift(1), data["Adj Close"].shift(1)
         )
@@ -46,12 +45,10 @@ class Market:
 
 if __name__ == "__main__":
     from datetime import date
-    from sqlalchemy import create_engine, text
+    from sqlalchemy import text
 
     index = "^SPX"
     table = "SPX"
-    path = os.path.join(pathlib.Path(__file__).parent.parent, "data.db")
-    engine = create_engine("sqlite:///" + path)
     with engine.connect() as conn, conn.begin():
         conn.execute(text(f"drop table if exists {table};"))
 

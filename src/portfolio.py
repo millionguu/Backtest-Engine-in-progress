@@ -1,18 +1,16 @@
 from collections import defaultdict
-import os
-import pathlib
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
 
 from data_loader import get_market_open_date
+from database import engine
 
 
 class Portfolio:
     def __init__(self, initial_cash, start_date, end_date):
-        path = os.path.join(pathlib.Path(__file__).parent.parent, "data.db")
-        engine = create_engine("sqlite:///" + path)
-        self.date_df = get_market_open_date(engine, start_date, end_date)
+        self.date_df = get_market_open_date(
+            engine, "us_market_date", start_date, end_date
+        )
         self.start_date = self.date_df[0]
         self.end_date = self.date_df[-1]
 

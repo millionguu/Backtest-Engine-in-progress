@@ -5,7 +5,7 @@ from analysis import Analysis, Benchmark, Metric
 from rebalance import Rebalance
 from strategy import NoStrategy, StopGainAndLoss
 from backtest import BackTest
-from factor import DummyFactor
+from factor.factor import DummyFactor
 
 
 start_date = date.fromisoformat("2023-01-01")
