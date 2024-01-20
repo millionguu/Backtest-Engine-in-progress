@@ -1,17 +1,13 @@
 from collections import defaultdict
-import os
-import pathlib
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
 
-from data_loader import get_market_open_date
+from src.data_loader import get_market_open_date
+from src.database import engine
 
 
 class Portfolio:
     def __init__(self, initial_cash, start_date, end_date):
-        path = os.path.join(pathlib.Path(__file__).parent.parent, "data.db")
-        engine = create_engine("sqlite:///" + path)
         self.date_df = get_market_open_date(engine, start_date, end_date)
         self.start_date = self.date_df[0]
         self.end_date = self.date_df[-1]
@@ -81,10 +77,12 @@ class Portfolio:
         return self.value_book[condition]["value"].to_numpy()[0]
 
     def update_security_value(self, security, date, daily_return):
+        """update security value"""
         condition = self.security_book[security]["date"] >= date
         self.security_book[security].loc[condition, "value"] *= 1 + daily_return
 
     def update_portfolio(self, date):
+        """update security weight based on security value"""
         total_value = self.get_remain_cash(date)
         for security in self.hold_securities():
             total_value += self.get_security_value(security, date)
