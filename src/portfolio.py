@@ -77,10 +77,12 @@ class Portfolio:
         return self.value_book[condition]["value"].to_numpy()[0]
 
     def update_security_value(self, security, date, daily_return):
+        """update security value"""
         condition = self.security_book[security]["date"] >= date
         self.security_book[security].loc[condition, "value"] *= 1 + daily_return
 
     def update_portfolio(self, date):
+        """update security weight based on security value"""
         total_value = self.get_remain_cash(date)
         for security in self.hold_securities():
             total_value += self.get_security_value(security, date)

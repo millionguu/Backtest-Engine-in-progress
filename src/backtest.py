@@ -17,7 +17,14 @@ class BackTest:
             self.cur_date = self.portfolio.get_next_market_date(self.cur_date)
 
     def iterate(self):
+        # update daily return first
         for security in self.market.securities:
+            daily_return = self.market.query_return(security, self.cur_date)
+        self.portfolio.update_portfolio(self.cur_date)
+
+        # apply strategy
+        for security in self.market.securities:
+            self.portfolio.update_security_value(security, self.cur_date, daily_return)
             order = self.strategy.get_order(
                 security, self.cur_date, self.prev_rebalance_date
             )
@@ -35,14 +42,13 @@ class BackTest:
                     self.rebalance.run(self.cur_date)
             else:
                 pass
-            daily_return = self.market.query_return(security, self.cur_date)
-            self.portfolio.update_security_value(security, self.cur_date, daily_return)
+        self.portfolio.update_portfolio(self.cur_date)
 
+        # apply rebalance
         if (
             np.argmax(self.portfolio.date_df == self.cur_date) % self.rebalance.period
             == 0
         ):
             self.prev_rebalance_date = self.cur_date
             self.rebalance.run(self.cur_date)
-
-        self.portfolio.update_portfolio(self.cur_date)
+            self.portfolio.update_portfolio(self.cur_date)
