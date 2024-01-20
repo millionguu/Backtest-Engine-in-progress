@@ -11,19 +11,31 @@ class Rebalance:
     def run(self, cur_date):
         if self.disable_rebalance:
             return
-        postition = self.factor.get_position()
-        optimal_split = 1 / max(1, len(postition) - len(self.blacklist))
+        position = self.factor.get_position(cur_date)
+        optimal_split = 1 / max(1, len(position) - len(self.blacklist))
         suboptimal_split = round(optimal_split, 2)
         weight = (
             suboptimal_split
             if suboptimal_split < optimal_split
             else suboptimal_split - 0.01
         )
-        postition = [
-            (p, weight) if p not in self.blacklist else (p, 0) for p, w in postition
+        position = [
+            (s, weight) if s not in self.blacklist else (s, 0) for s, w in position
         ]
         position_change = []
-        for security, weight in postition:
+
+        new_securities = [s for s, _ in position]
+        for security in self.portfolio.security_book.keys():
+            condition = self.portfolio.security_book[security]["date"] == cur_date
+            original_weight = self.portfolio.security_book[security][condition][
+                "weight"
+            ].iloc[0]
+            if security not in new_securities and original_weight > 0:
+                # TODO: rounding error
+                weight = (original_weight // 0.001) * 0.001
+                position_change.append((security, -weight))
+
+        for security, weight in position:
             condition = self.portfolio.security_book[security]["date"] == cur_date
             original_weight = self.portfolio.security_book[security][condition][
                 "weight"

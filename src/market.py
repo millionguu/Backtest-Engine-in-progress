@@ -4,7 +4,7 @@ import pandas as pd
 import sqlalchemy
 import yfinance
 
-from database import engine
+from src.database import engine
 
 
 class Market:
@@ -13,10 +13,10 @@ class Market:
         self.data = dict()
         for security in self.securities:
             table = security if not security.startswith("^") else security[1:]
-            if not sqlalchemy.inspect(self.engine).has_table(table):
+            if not sqlalchemy.inspect(engine).has_table(table):
                 data = self.retrive_data_from_yfinance(security)
-                data.to_sql(table, con=self.engine, chunksize=1000, index=False)
-            self.data[table] = pd.read_sql(f"select * from {table}", self.engine)
+                data.to_sql(table, con=engine, chunksize=1000, index=False)
+            self.data[table] = pd.read_sql(f"select * from {table}", engine)
             self.data[table]["date"] = pd.to_datetime(self.data[table]["date"]).dt.date
             time.sleep(3)
 

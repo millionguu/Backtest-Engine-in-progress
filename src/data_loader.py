@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import text
 import yfinance
-from database import engine
+from src.database import engine
 
 
 def write_excel_data(engine, filename, table):

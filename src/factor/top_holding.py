@@ -1,9 +1,12 @@
 # https://github.com/ranaroussi/yfinance/discussions/1761
 # https://gist.github.com/bot-unit/ae757e68fc3616f8c35c8521fad51d83
 
+import time
 import requests
 import bs4
 import pandas as pd
+from src.database import engine
+import sqlalchemy
 
 headers = {"User-agent": "Mozilla/5.0"}
 
@@ -52,15 +55,20 @@ def get_holders(holders_url):
 
 
 def get_top_holdings(ticker, region="US", is_etf=True):
-    etfs = search_etf(ticker, region, is_etf)
-    if isinstance(etfs, dict) and "data" in etfs and len(etfs["data"]) > 0:
-        etf = etfs["data"][0]
-        url = etf["url"].replace("~", "https://markets.ft.com/data")
-        url = url.replace("summary", "holdings")
-        df = get_holders(url)
-        return df
-    else:
-        raise ValueError("error occured while fetching top holdings.")
+    table = f"top_holdings_{ticker}"
+    if not sqlalchemy.inspect(engine).has_table(table):
+        etfs = search_etf(ticker, region, is_etf)
+        if isinstance(etfs, dict) and "data" in etfs and len(etfs["data"]) > 0:
+            etf = etfs["data"][0]
+            url = etf["url"].replace("~", "https://markets.ft.com/data")
+            url = url.replace("summary", "holdings")
+            df = get_holders(url)
+            df.columns = df.columns.str.lower()
+            df.to_sql(table, con=engine, chunksize=1000, index=False)
+            time.sleep(0.1)
+        else:
+            raise ValueError("error occured while fetching top holdings.")
+    return pd.read_sql(f"select * from {table}", engine)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import numpy as np
-from strategy import OrderType, StopGainAndLoss
+from src.strategy import OrderType, StopGainAndLoss
 
 
 class BackTest:
