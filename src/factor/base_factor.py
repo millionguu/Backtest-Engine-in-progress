@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import timedelta
 
 
 class Factor(ABC):
@@ -23,6 +23,12 @@ class Factor(ABC):
     def get_last_quintile(self, security_list):
         length = len(security_list)
         return security_list[length // 5 * 4 :]
+
+    @staticmethod
+    def get_closest_month_end(date):
+        month_end = (date + timedelta(days=1)).replace(day=1) - timedelta(days=1)
+        month_end = month_end.strftime("%Y-%m-%d")
+        return month_end
 
 
 class DummyFactor(Factor):
