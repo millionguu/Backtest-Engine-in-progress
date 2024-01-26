@@ -17,7 +17,8 @@ backtest engine
 
 ## tables
 
-- all the tickers available in yahoo finance
-- top_holdings_{etf}
 - us_market_open_date
-- sales_growth_fy1_msci_usa
+- all the tickers available in yahoo finance
+- top_holdings_{etf_name}
+- msci_usa_sector_{info|weight}
+- msci_usa_sales_growth_{fy1|ttm|ntm}
