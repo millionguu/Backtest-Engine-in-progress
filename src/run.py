@@ -16,28 +16,45 @@ end_date = date.fromisoformat("2022-12-21")
 security_universe = SECTOR_ETF
 
 market = Market(security_universe)
-# factor = DummyFactor(security_universe, start_date, end_date)
-factor = SalesGrowthFactor(security_universe, start_date, end_date)
-long_position = factor.get_long_position(start_date)
-portfolio = Portfolio(100.0, start_date, end_date)
-factor.set_portfolio_at_start(portfolio, long_position)
+
+### Long factor
+long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long")
+long_position = long_factor.get_position(start_date)
+long_portfolio = Portfolio(100.0, start_date, end_date)
+long_factor.set_portfolio_at_start(long_portfolio, long_position)
 
 blacklist = []
-# strategy = NoStrategy(portfolio, blacklist)
-strategy = StopGainAndLoss(portfolio, blacklist)
+strategy = StopGainAndLoss(long_portfolio, blacklist)
 strategy.set_limit(0.3, 0.3)
-rebalance = Rebalance(180, portfolio, factor, blacklist)
+rebalance = Rebalance(180, long_portfolio, long_factor, blacklist)
 
-backtest = BackTest(portfolio, strategy, market, rebalance)
+backtest = BackTest(long_portfolio, strategy, market, rebalance)
 backtest.run()
+
+
+### Short factor
+short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short")
+short_position = short_factor.get_position(start_date)
+short_portfolio = Portfolio(100.0, start_date, end_date)
+short_factor.set_portfolio_at_start(short_portfolio, short_position)
+
+blacklist = []
+strategy = StopGainAndLoss(short_portfolio, blacklist)
+strategy.set_limit(0.3, 0.3)
+rebalance = Rebalance(180, short_portfolio, short_factor, blacklist)
+
+backtest = BackTest(short_portfolio, strategy, market, rebalance)
+backtest.run()
+
+### plot
 benchmark = Benchmark("^SPX", start_date, end_date).get_performance()
 
-metric = Metric(portfolio, benchmark)
+metric = Metric(long_portfolio, benchmark)
 print(f"portfolio annulized return: {metric.annualized_return()}")
 print(
     f"portfolio annulized return relative to benchmark: {metric.annualized_return_relative_to_benchmark()}"
 )
 print(f"information ratio: {metric.information_ratio()}")
 
-analysis = Analysis(portfolio, benchmark)
+analysis = Analysis(short_portfolio, benchmark)
 analysis.draw()

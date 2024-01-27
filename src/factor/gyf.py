@@ -1,8 +1,6 @@
-import datetime
 from functools import cache
 import numpy as np
 import pandas as pd
-import duckdb
 
 from src.database import engine
 from src.factor.base_factor import BaseFactor
@@ -12,8 +10,8 @@ from src.factor.const import SECTOR_ETF_MAPPING, SECTOR_ETF
 
 
 class SalesGrowthFactor(BaseFactor):
-    def __init__(self, security_universe, start_date, end_date):
-        super().__init__(security_universe, start_date, end_date)
+    def __init__(self, security_universe, start_date, end_date, factor_type):
+        super().__init__(security_universe, start_date, end_date, factor_type)
 
     def set_portfolio_at_start(self, portfolio, position):
         for security, weight in position:

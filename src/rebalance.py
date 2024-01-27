@@ -11,7 +11,7 @@ class Rebalance:
     def run(self, cur_date):
         if self.disable_rebalance:
             return
-        position = self.factor.get_long_position(cur_date)
+        position = self.factor.get_position(cur_date)
 
         residual = 0
         valid_count = 0
