@@ -3,7 +3,7 @@ from datetime import timedelta
 
 
 class BaseFactor(ABC):
-    def __init__(self, security_universe, start_date, end_date, factor_type="long"):
+    def __init__(self, security_universe, start_date, end_date, factor_type):
         self.security_universe = security_universe
         self.start_date = start_date
         self.end_date = end_date
@@ -25,7 +25,7 @@ class BaseFactor(ABC):
 
     def get_short_position(self, date):
         security_list = self.get_security_list(date)
-        last_quintile = self.get_quintile(security_list, ordinal=4)
+        last_quintile = self.get_quintile(security_list, ordinal=5)
         weight = 1 / len(last_quintile)
         return [(s, weight) for s in last_quintile]
 
@@ -40,7 +40,10 @@ class BaseFactor(ABC):
     @staticmethod
     def get_quintile(security_list, ordinal=1, base=5):
         gran = len(security_list) // base
-        return security_list[(ordinal - 1) * gran : ordinal * gran]
+        if ordinal == base:
+            return security_list[(ordinal - 1) * gran : -1]
+        else:
+            return security_list[(ordinal - 1) * gran : ordinal * gran]
 
     @staticmethod
     def get_closest_month_end(date):

@@ -30,7 +30,7 @@ class SalesGrowthFactor(BaseFactor):
         return etf_list
 
     def build_sector_factor(self, date):
-        signal_df = pd.read_sql("select * from msci_usa_sales_growth_ttm", engine)
+        signal_df = pd.read_sql("select * from msci_usa_sales_growth_fy1", engine)
         signal_df = signal_df.rename(columns={"growth": "signal"})
         sector_signal_df = Sector.get_sector_signal(signal_df)
         closest_month_end = self.get_closest_month_end(date)

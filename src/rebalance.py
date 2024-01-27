@@ -43,9 +43,7 @@ class Rebalance:
                 "weight"
             ].iloc[0]
             if security not in new_securities and original_weight > 0:
-                # TODO: rounding error
-                weight = (original_weight // 0.001) * 0.001
-                position_change.append((security, -weight))
+                position_change.append((security, -original_weight))
 
         for security, weight in new_position:
             condition = self.portfolio.security_book[security]["date"] == cur_date

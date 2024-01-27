@@ -5,17 +5,20 @@ from src.market import Market
 
 
 class Analysis:
-    def __init__(self, portfolio, benchmark):
-        self.portfolio = portfolio
+    def __init__(self, portfolios, portfolio_labels, benchmark, benchmark_label):
+        self.portfolios = portfolios
+        self.portfolio_labels = portfolio_labels
         self.benchmark = benchmark
+        self.benchmark_label = benchmark_label
         fig, ax = plt.subplots(1, 1)
         self.ax = ax
 
     def draw(self):
-        self.ax.plot(
-            self.portfolio.value_book["value"], label="portfolio", color="tab:red"
-        )
-        self.ax.plot(self.benchmark, label="benchmark", color="tab:blue")
+        colors = ["tab:red", "tab:green"]
+        for p, l, c in zip(self.portfolios, self.portfolio_labels, colors):
+            self.ax.plot(p.value_book["value"], label=l, color=c)
+
+        self.ax.plot(self.benchmark, label=self.benchmark_label, color="tab:blue")
         self.ax.legend()
         plt.show()
 
