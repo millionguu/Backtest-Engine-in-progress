@@ -6,19 +6,21 @@ from src.rebalance import Rebalance
 from src.strategy import NoStrategy, StopGainAndLoss
 from src.backtest import BackTest
 from src.factor.base_factor import DummyFactor
-from src.factor.gyf import SalesGrowthFactor, SECTOR_ETF
+from src.factor.gyf import SalesGrowthFactor
+from src.factor.const import SECTOR_ETF
 
 
-start_date = date.fromisoformat("2023-01-01")
-end_date = date.fromisoformat("2023-12-21")
+start_date = date.fromisoformat("2021-01-01")
+end_date = date.fromisoformat("2022-12-21")
 # security_universe = ["^SPX", "^IXIC", "^RUT", "QQQ"]
 security_universe = SECTOR_ETF
 
 market = Market(security_universe)
 # factor = DummyFactor(security_universe, start_date, end_date)
 factor = SalesGrowthFactor(security_universe, start_date, end_date)
+long_position = factor.get_long_position(start_date)
 portfolio = Portfolio(100.0, start_date, end_date)
-factor.set_portfolio_at_start(portfolio)
+factor.set_portfolio_at_start(portfolio, long_position)
 
 blacklist = []
 # strategy = NoStrategy(portfolio, blacklist)

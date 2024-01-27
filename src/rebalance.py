@@ -11,20 +11,32 @@ class Rebalance:
     def run(self, cur_date):
         if self.disable_rebalance:
             return
-        position = self.factor.get_position(cur_date)
-        optimal_split = 1 / max(1, len(position) - len(self.blacklist))
-        suboptimal_split = round(optimal_split, 2)
-        weight = (
-            suboptimal_split
-            if suboptimal_split < optimal_split
-            else suboptimal_split - 0.01
-        )
-        position = [
-            (s, weight) if s not in self.blacklist else (s, 0) for s, w in position
-        ]
+        position = self.factor.get_long_position(cur_date)
+
+        residual = 0
+        valid_count = 0
+        new_position = []
+        for s, w in position:
+            if s not in self.blacklist:
+                valid_count += 1
+                if valid_count < len(position):
+                    new_position.append((s, w))
+                else:
+                    new_position.append((s, w - 0.01))  # rounding error
+            else:
+                new_position.append((s, 0))
+                residual += w
+
+        if residual > 0:
+            residual -= 0.01  # rounding error
+            new_position = [
+                (s, w + (residual / valid_count)) if w != 0 else (s, 0)
+                for s, w in new_position
+            ]
+
         position_change = []
 
-        new_securities = [s for s, _ in position]
+        new_securities = [s for s, _ in new_position]
         for security in self.portfolio.security_book.keys():
             condition = self.portfolio.security_book[security]["date"] == cur_date
             original_weight = self.portfolio.security_book[security][condition][
@@ -35,7 +47,7 @@ class Rebalance:
                 weight = (original_weight // 0.001) * 0.001
                 position_change.append((security, -weight))
 
-        for security, weight in position:
+        for security, weight in new_position:
             condition = self.portfolio.security_book[security]["date"] == cur_date
             original_weight = self.portfolio.security_book[security][condition][
                 "weight"
