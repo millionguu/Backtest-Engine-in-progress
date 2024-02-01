@@ -11,7 +11,6 @@ from src.factor.const import SECTOR_ETF
 
 start_date = date.fromisoformat("2022-01-01")
 end_date = date.fromisoformat("2022-12-21")
-# security_universe = ["^SPX", "^IXIC", "^RUT", "QQQ"]
 security_universe = SECTOR_ETF
 
 market = Market(security_universe)
@@ -25,7 +24,7 @@ long_factor.set_portfolio_at_start(long_portfolio, long_position)
 blacklist = []
 strategy = StopGainAndLoss(long_portfolio, blacklist)
 strategy.set_limit(0.3, 0.3)
-rebalance = Rebalance(600, long_portfolio, long_factor, blacklist)
+rebalance = Rebalance(60, long_portfolio, long_factor, blacklist)
 
 backtest = BackTest(long_portfolio, strategy, market, rebalance)
 backtest.run()
@@ -42,7 +41,7 @@ short_factor.set_portfolio_at_start(short_portfolio, short_position)
 blacklist = []
 strategy = StopGainAndLoss(short_portfolio, blacklist)
 strategy.set_limit(0.3, 0.3)
-rebalance = Rebalance(600, short_portfolio, short_factor, blacklist)
+rebalance = Rebalance(60, short_portfolio, short_factor, blacklist)
 
 backtest = BackTest(short_portfolio, strategy, market, rebalance)
 backtest.run()

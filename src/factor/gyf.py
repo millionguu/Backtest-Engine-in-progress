@@ -1,4 +1,5 @@
 from functools import cache
+from dateutil.relativedelta import relativedelta
 import numpy as np
 import pandas as pd
 
@@ -29,14 +30,19 @@ class SalesGrowthFactor(BaseFactor):
                 print(f"couln't find etf for {sector} sector")
         return etf_list
 
+    @staticmethod
+    def get_last_month_bound(date):
+        prev_month = (date - relativedelta(months=1)).strftime("%Y-%m")
+        cur_month = date.strftime("%Y-%m")
+        return f"where date between '{prev_month}' and '{cur_month}'"
+
     def build_sector_factor(self, date):
-        signal_df = pd.read_sql("select * from msci_usa_sales_growth_fy1", engine)
+        bound = self.get_last_month_bound(date)
+        signal_df = pd.read_sql(
+            f"select * from msci_usa_sales_growth_fy1 {bound}", engine
+        )
         signal_df = signal_df.rename(columns={"growth": "signal"})
         sector_signal_df = Sector.get_sector_signal(signal_df)
-        closest_month_end = self.get_closest_month_end(date)
-        sector_signal_df = sector_signal_df[
-            sector_signal_df["date"] == closest_month_end
-        ]
         sector_signal_df = sector_signal_df.sort_values(
             by="weighted_signal", ascending=False
         )

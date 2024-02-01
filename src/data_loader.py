@@ -66,8 +66,7 @@ def write_market_open_date(engine):
     with engine.connect() as conn, conn.begin():
         conn.execute(text(f"drop table if exists {table};"))
     today = datetime.today().strftime("%Y-%m-%d")
-    proxy = "http://127.0.0.1:1080"
-    data = yfinance.download("^DJI", start="2000-01-01", end=today, proxy=proxy)
+    data = yfinance.download("^DJI", start="2000-01-01", end=today)
     data["date"] = pd.to_datetime(data.index).date
     data["date"].to_sql(table, con=engine, chunksize=1000, index=False)
 

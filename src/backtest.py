@@ -18,13 +18,13 @@ class BackTest:
 
     def iterate(self):
         # update daily return first
-        for security in self.market.securities:
+        for security in self.portfolio.hold_securities(self.cur_date):
             daily_return = self.market.query_return(security, self.cur_date)
+            self.portfolio.update_security_value(security, self.cur_date, daily_return)
         self.portfolio.update_portfolio(self.cur_date)
 
         # apply strategy
-        for security in self.market.securities:
-            self.portfolio.update_security_value(security, self.cur_date, daily_return)
+        for security in self.portfolio.hold_securities(self.cur_date):
             order = self.strategy.get_order(
                 security, self.cur_date, self.prev_rebalance_date
             )
@@ -52,3 +52,4 @@ class BackTest:
             self.prev_rebalance_date = self.cur_date
             self.rebalance.run(self.cur_date)
             self.portfolio.update_portfolio(self.cur_date)
+            self.portfolio.print_snapshot(self.cur_date)

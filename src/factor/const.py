@@ -13,4 +13,5 @@ SECTOR_ETF_MAPPING = {
     "Financials": "XLF",
 }
 
-SECTOR_ETF = SECTOR_ETF_MAPPING.values()
+
+SECTOR_ETF = list(SECTOR_ETF_MAPPING.values())

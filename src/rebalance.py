@@ -30,7 +30,7 @@ class Rebalance:
         if residual > 0:
             residual -= 0.01  # rounding error
             new_position = [
-                (s, w + (residual / valid_count)) if w != 0 else (s, 0)
+                (s, w + round(residual / valid_count, 3)) if w != 0 else (s, 0)
                 for s, w in new_position
             ]
 

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import timedelta
 
 
 class BaseFactor(ABC):
@@ -45,11 +44,7 @@ class BaseFactor(ABC):
         else:
             return security_list[(ordinal - 1) * gran : ordinal * gran]
 
-    @staticmethod
-    def get_closest_month_end(date):
-        month_end = (date + timedelta(days=1)).replace(day=1) - timedelta(days=1)
-        month_end = month_end.strftime("%Y-%m-%d")
-        return month_end
+
 
 
 class DummyFactor(BaseFactor):
