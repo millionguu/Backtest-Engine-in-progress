@@ -75,7 +75,7 @@ from (
     from
         sector_df) as sector 
     on signal.sedol7 = sector.sedol7
-        and signal.date = sector.date
+        and substring(signal.date, 1, 7) = substring(sector.date, 1, 7)
 group by
     sector.sector,
     sector.date

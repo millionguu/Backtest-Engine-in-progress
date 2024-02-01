@@ -39,7 +39,7 @@ class SalesGrowthFactor(BaseFactor):
     def build_sector_factor(self, date):
         bound = self.get_last_month_bound(date)
         signal_df = pd.read_sql(
-            f"select * from msci_usa_sales_growth_fy1 {bound}", engine
+            f"select * from msci_usa_sales_growth_ntm {bound}", engine
         )
         signal_df = signal_df.rename(columns={"growth": "signal"})
         sector_signal_df = Sector.get_sector_signal(signal_df)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     from datetime import date
 
     start_date = date.fromisoformat("2022-01-01")
-    end_date = date.fromisoformat("2022-12-21")
-    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date)
+    end_date = date.fromisoformat("2022-02-15")
+    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date, "long")
     df = factor.build_sector_factor(end_date)
     print()
