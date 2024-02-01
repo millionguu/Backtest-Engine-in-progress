@@ -30,8 +30,13 @@ class Portfolio:
             }
         )
 
-    def hold_securities(self):
-        return self.security_book.keys()
+    def hold_securities(self, date):
+        res = []
+        for security in list(self.security_book.keys()):
+            value = self.get_security_value(security, date)
+            if value > 0:
+                res.append(security)
+        return res
 
     def get_next_market_date(self, cur_date):
         idx = np.argmax(self.date_df == cur_date)
@@ -50,19 +55,22 @@ class Portfolio:
             self.security_book[security].loc[condition, "weight"] += add_weight
 
     def reduce_security_weight(self, security, reduce_weight, date):
-        reduce_value = self.get_total_value(date) * reduce_weight
-        if (
-            security not in self.hold_securities()
-            or reduce_value > self.get_security_value(security, date)
-        ):
+        remaining_weight = self.get_security_weight(security, date)
+        remaining_value = self.get_security_value(security, date)
+        if reduce_weight > remaining_weight:
             raise ValueError("not enough value to reduce")
         else:
+            reduce_value = (reduce_weight / remaining_weight) * remaining_value
             condition = self.security_book[security]["date"] >= date
             self.security_book[security].loc[condition, "value"] -= reduce_value
             self.security_book[security].loc[condition, "weight"] -= reduce_weight
 
             condition = self.value_book["date"] >= date
             self.value_book.loc[condition, "cash"] += reduce_value
+
+    def get_security_weight(self, security, date):
+        condition = self.security_book[security]["date"] == date
+        return self.security_book[security][condition]["weight"].to_numpy()[0]
 
     def get_security_value(self, security, date):
         condition = self.security_book[security]["date"] == date
@@ -76,6 +84,16 @@ class Portfolio:
         condition = self.value_book["date"] == date
         return self.value_book[condition]["value"].to_numpy()[0]
 
+    def print_snapshot(self, date):
+        total_value = self.get_total_value(date)
+        res = []
+        for security in self.hold_securities(date):
+            value = self.get_security_value(security, date)
+            if value > 0:
+                res.append((security, value))
+        print(f"total value: {total_value}")
+        print(res)
+
     def update_security_value(self, security, date, daily_return):
         """update security value"""
         condition = self.security_book[security]["date"] >= date
@@ -84,13 +102,13 @@ class Portfolio:
     def update_portfolio(self, date):
         """update security weight based on security value"""
         total_value = self.get_remain_cash(date)
-        for security in self.hold_securities():
+        for security in self.hold_securities(date):
             total_value += self.get_security_value(security, date)
         condition = self.value_book["date"] >= date
         self.value_book.loc[condition, "value"] = total_value
 
-        condition = self.security_book[security]["date"] >= date
-        for security in self.hold_securities():
+        for security in self.hold_securities(date):
+            condition = self.security_book[security]["date"] >= date
             self.security_book[security].loc[condition, "weight"] = np.divide(
                 self.security_book[security][condition]["value"], total_value
             )

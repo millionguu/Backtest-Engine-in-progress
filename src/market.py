@@ -21,11 +21,7 @@ class Market:
             time.sleep(3)
 
     def retrive_data_from_yfinance(self, security):
-        # need proxy
-        proxy = "http://127.0.0.1:1080"
-        data = yfinance.download(
-            security, start="2000-01-01", end="2023-12-31", proxy=proxy
-        )
+        data = yfinance.download(security, start="2000-01-01", end="2023-12-31")
         data["return"] = np.divide(
             data["Adj Close"] - data["Adj Close"].shift(1), data["Adj Close"].shift(1)
         )

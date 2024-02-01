@@ -6,31 +6,69 @@ import yfinance
 from src.database import engine
 
 
-def write_excel_data(engine, filename, table):
-    data = pd.read_excel(f"../data/{filename}.xlsx", index_col=False)
-    data = data.rename(columns={"Unnamed: 1": "company"})
-    data.columns = data.columns.str.lower()
-    convert_columns = [c for c in data.columns if c not in ["sedol7", "company"]]
-    for c in convert_columns:
-        data[c] = pd.to_numeric(data[c], errors="coerce")
-    data.to_sql(table, con=engine, chunksize=1000, index=False)
-
-
-def write_yahoo_finance_source_to_sqlite(engine, filename, table):
-    data = pd.read_csv(f"../data/{filename}.csv", index_col=False)
-    data["return"] = np.divide(
-        data["Adj Close"] - data["Adj Close"].shift(1), data["Adj Close"].shift(1)
+def write_sector_weight(engine):
+    filename = "Weight_MSCI USA_20001229_20231130.xlsx"
+    table = "msci_usa_sector_weight"
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text(f"drop table if exists {table};"))
+    data = pd.read_excel("data/" + filename)
+    data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], var_name="date", value_name="weight"
     )
-    data.columns = data.columns.str.lower()
+    data["date"] = pd.to_datetime(data["date"].apply(lambda x: str(x))).dt.date
     data.to_sql(table, con=engine, chunksize=1000, index=False)
+
+
+def write_sector_info(engine):
+    filename = "GICS_MSCI USA_20001229_20231130.xlsx"
+    table = "msci_usa_sector_info"
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text(f"drop table if exists {table};"))
+    data = pd.read_excel("data/" + filename)
+    data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], var_name="date", value_name="sector"
+    )
+    data["date"] = pd.to_datetime(data["date"]).dt.date
+    data.to_sql(table, con=engine, chunksize=1000, index=False)
+
+
+def write_sales_growth_data(engine):
+    file_names = [
+        "Sales Gth FY1_MSCI USA_20001231-20231130.xlsx",
+        "Sales Gth NTM_MSCI USA_20001231-20231130.xlsx",
+        "Sales Gth TTM_MSCI USA_20001231-20231130.xlsx",
+    ]
+    tables = [
+        "msci_usa_sales_growth_fy1",
+        "msci_usa_sales_growth_ntm",
+        "msci_usa_sales_growth_ttm",
+    ]
+    with engine.connect() as conn, conn.begin():
+        for table in tables:
+            conn.execute(text(f"drop table if exists {table};"))
+    for file_name, table in zip(file_names, tables):
+        data = pd.read_excel(f"data/{file_name}", index_col=False)
+        data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
+        convert_columns = [c for c in data.columns if c not in ["sedol7", "company"]]
+        for c in convert_columns:
+            data[c] = pd.to_numeric(data[c], errors="coerce")
+        data = data.melt(
+            id_vars=["sedol7", "company"], var_name="date", value_name="growth"
+        )
+        data["date"] = pd.to_datetime(data["date"]).dt.date
+        data.to_sql(table, con=engine, chunksize=1000, index=False)
 
 
 def write_market_open_date(engine):
+    table = "us_market_open_date"
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text(f"drop table if exists {table};"))
     today = datetime.today().strftime("%Y-%m-%d")
-    proxy = "http://127.0.0.1:1080"
-    data = yfinance.download("^DJI", start="2000-01-01", end=today, proxy=proxy)
+    data = yfinance.download("^DJI", start="2000-01-01", end=today)
     data["date"] = pd.to_datetime(data.index).date
-    data["date"].to_sql("us_market_open_date", con=engine, chunksize=1000, index=False)
+    data["date"].to_sql(table, con=engine, chunksize=1000, index=False)
 
 
 def get_market_open_date(engine, start_date, end_date):
@@ -41,12 +79,4 @@ def get_market_open_date(engine, start_date, end_date):
 
 
 if __name__ == "__main__":
-    with engine.connect() as conn, conn.begin():
-        # conn.execute(text(f"create table if not exists meta(id int(10));"))
-        # conn.execute(text(f"drop table if exists us_market_open_date;"))
-        # write_market_open_date(engine)
-
-        filename = "Sales Gth FY1_MSCI USA_20001231-20231130"
-        table = "sales_growth_fy1_msci_usa"
-        conn.execute(text(f"drop table if exists {table};"))
-        write_excel_data(engine, filename, table)
+    write_sales_growth_data(engine)

@@ -1,97 +1,62 @@
-from src.factor.base_factor import Factor
-from src.factor.top_holding import get_top_holdings
+from functools import cache
+from dateutil.relativedelta import relativedelta
 import numpy as np
 import pandas as pd
+
 from src.database import engine
-
-# source: https://www.cnbc.com/sector-etfs/
-SECTOR_ETF = [
-    "XLE",
-    "XLF",
-    "XLU",
-    "XLI",
-    "GDX",
-    "XLK",
-    "XLV",
-    "XLY",
-    "XLP",
-    "XLB",
-    "XOP",
-    "IYR",
-    "XHB",
-    "ITB",
-    "VNQ",
-    "GDXJ",
-    "IYE",
-    "OIH",
-    "XME",
-    "XRT",
-    "SMH",
-    "IBB",
-    "KBE",
-    "KRE",
-    "XTL",
-]
+from src.factor.base_factor import BaseFactor
+from src.factor.top_holding import get_top_holdings
+from src.factor.sector import Sector
+from src.factor.const import SECTOR_ETF_MAPPING, SECTOR_ETF
 
 
-class SalesGrowthFactor(Factor):
-    def __init__(self, security_universe, start_date, end_date):
-        super().__init__(security_universe, start_date, end_date)
+class SalesGrowthFactor(BaseFactor):
+    def __init__(self, security_universe, start_date, end_date, factor_type):
+        super().__init__(security_universe, start_date, end_date, factor_type)
 
-    def get_position(self, date):
-        security_list = self.build_factor(date)
-        first_quintile = self.get_first_quintile(security_list)
-        weight = 1 / len(first_quintile)
-        return [(s, weight) for s in first_quintile]
-
-    def set_portfolio_at_start(self, portfolio):
-        for security, weight in self.get_position(self.start_date):
+    def set_portfolio_at_start(self, portfolio, position):
+        for security, weight in position:
             portfolio.add_security_weight(security, weight, portfolio.start_date)
 
-    def build_factor(self, date):
-        res = []
-        for ticker in self.security_universe:
-            avg_sales_grwoth = self.get_ticker_sales_growth(ticker, date)
-            res.append((ticker, avg_sales_grwoth))
-        res = sorted(res, key=lambda x: x[1], reverse=True)
-        print("build factor value:", res)
-        security_list = list(map(lambda x: x[0], res))
-        return security_list
+    @cache
+    def get_security_list(self, date):
+        sector_list = self.build_sector_factor(date)
+        etf_list = []
+        for sector in sector_list:
+            if sector in SECTOR_ETF_MAPPING:
+                etf = SECTOR_ETF_MAPPING[sector]
+                etf_list.append(etf)
+            else:
+                print(f"couln't find etf for {sector} sector")
+        return etf_list
 
-    def get_ticker_sales_growth(self, ticker, date):
-        top_holdings = get_top_holdings(ticker, "US", True)
-        holding_list = (
-            top_holdings["company"].str.split().apply(lambda x: x[0]).to_list()
+    @staticmethod
+    def get_last_month_bound(date):
+        prev_month = (date - relativedelta(months=1)).strftime("%Y-%m")
+        cur_month = date.strftime("%Y-%m")
+        return f"where date between '{prev_month}' and '{cur_month}'"
+
+    def build_sector_factor(self, date):
+        bound = self.get_last_month_bound(date)
+        signal_df = pd.read_sql(
+            f"select * from msci_usa_sales_growth_ntm {bound}", engine
         )
-        sales_growth = pd.read_sql("select * from sales_growth_fy1_msci_usa", engine)
-        # TODO: join condition not robust
-        test_contains = lambda row: any(
-            map(
-                lambda c: c in row.split()
-                and "Class B" not in row
-                and "Class C" not in row,
-                holding_list,
-            )
+        signal_df = signal_df.rename(columns={"growth": "signal"})
+        sector_signal_df = Sector.get_sector_signal(signal_df)
+        sector_signal_df = sector_signal_df.sort_values(
+            by="weighted_signal", ascending=False
         )
-        condition = sales_growth["company"].apply(test_contains)
-        df = sales_growth[condition]
-        df = df.drop(columns=["sedol7"]).set_index(["company"]).stack().reset_index()
-        df = df.rename(columns={"level_1": "date", 0: "value"})
-        df = pd.pivot_table(
-            df, values="value", index="date", columns="company", aggfunc="max"
-        ).sort_index()
-        df.index = pd.to_datetime(df.index).date
-        if len(df) > 0:
-            return np.average(df[df.index < date].iloc[-1].dropna().values)
-        else:
-            print("couldnt find sales growth data for", ticker)
-            return -100
+        sector_signal_df = sector_signal_df[sector_signal_df["sector"] != "--"]
+        print("sector signal value:\n", sector_signal_df)
+        sector_list = sector_signal_df["sector"].to_list()
+        return sector_list
 
 
 if __name__ == "__main__":
     from datetime import date
 
-    start_date = date.fromisoformat("2023-01-01")
-    end_date = date.fromisoformat("2023-12-21")
-    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date)
-    position = factor.get_position(date.fromisoformat("2023-03-31"))
+    start_date = date.fromisoformat("2022-01-01")
+    end_date = date.fromisoformat("2022-02-15")
+    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date, "long")
+    df = factor.build_sector_factor(end_date)
+    print()
