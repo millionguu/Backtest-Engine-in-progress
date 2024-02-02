@@ -9,7 +9,11 @@ from src.factor.const import SECTOR_ETF_MAPPING, SECTOR_ETF
 
 
 class SalesGrowthFactor(BaseFactor):
-    def __init__(self, security_universe, start_date, end_date, factor_type):
+    def __init__(
+        self, security_universe, start_date, end_date, factor_type, month_range
+    ):
+        # hyper parameter: generate z-score using data in the last n months
+        self.month_range = month_range
         super().__init__(security_universe, start_date, end_date, factor_type)
 
     def set_portfolio_at_start(self, portfolio, position):
@@ -18,20 +22,19 @@ class SalesGrowthFactor(BaseFactor):
 
     @cache
     def get_security_list(self, date):
-        sector_list = self.build_sector_history_z_score(date)
+        sector_list = self.sort_sector_using_z_score(date)
         etf_list = []
         for sector in sector_list:
             if sector in SECTOR_ETF_MAPPING:
                 etf = SECTOR_ETF_MAPPING[sector]
                 etf_list.append(etf)
             else:
-                print(f"couln't find etf for {sector} sector")
+                raise ValueError(f"couln't find etf for {sector} sector")
         return etf_list
 
-    def build_sector_history_z_score(self, observe_date):
-        month_range = 12  # use data in the last 12 months
+    def sort_sector_using_z_score(self, observe_date):
         total_df_list = []
-        for delta in range(month_range):
+        for delta in range(self.month_range):
             date = observe_date - relativedelta(months=delta)
             df = self.build_single_month_sector_factor(date)
             total_df_list.append(df)

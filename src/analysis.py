@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 import matplotlib.pyplot as plt
 from src.market import Market
 
@@ -26,46 +26,55 @@ class Analysis:
 class Benchmark:
     def __init__(self, benchmark, start_date, end_date):
         self.benchmark = benchmark if not benchmark.startswith("^") else benchmark[1:]
-        self.start_date = start_date
-        self.end_date = end_date
+        self.start_date = start_date.strftime("%Y-%m-%d")
+        self.end_date = end_date.strftime("%Y-%m-%d")
 
     def get_performance(self):
         market = Market([self.benchmark])
         df = market.data[self.benchmark]
-        condition = (df["date"] >= self.start_date) & (df["date"] <= self.end_date)
-        benchmark = df[condition]["adj close"].reset_index().drop(columns=["index"])
-        benchmark = benchmark.rename(columns={"adj close": "value"})
-        benchmark = benchmark / benchmark["value"].iloc[0] * 100
-        return benchmark
+        df = (
+            df.filter(
+                (pl.col("date") >= self.start_date) & (pl.col("date") <= self.end_date)
+            )
+            .rename({"adj close": "value"})
+            .select("value")
+        )
+        first_day_value = df.get_column("value").head(1).item()
+        df = df.select(pl.col("value") / pl.lit(first_day_value) * pl.lit(100))
+        return df
 
 
 class Metric:
     def __init__(self, portfolio, benchmark):
         self.portfolio = portfolio
         self.benchmark = benchmark
-        self.value_book = self.portfolio.value_book
+        self.value_book = pl.from_pandas(self.portfolio.value_book)
         self.num_dates = self.value_book.shape[0]
         self.ann_const = 252
         self.annualized_factor = self.num_dates / self.ann_const
 
     def annualized_return(self):
         total_return = (
-            self.value_book["value"].iloc[-1] - self.value_book["value"].iloc[0]
-        ) / (self.value_book["value"].iloc[0])
+            self.value_book.get_column("value").item(-1)
+            - self.value_book.get_column("value").item(0)
+        ) / self.value_book.get_column("value").item(0)
         return np.power(1 + total_return, 1 / self.annualized_factor) - 1
 
     def annualized_benchmark_return(self):
         benchmark_return = (
-            self.benchmark["value"].iloc[-1] - self.benchmark["value"].iloc[0]
-        ) / (self.benchmark["value"].iloc[0])
+            self.benchmark.get_column("value").item(-1)
+            - self.benchmark.get_column("value").item(0)
+        ) / self.benchmark.get_column("value").item(0)
         return np.power(1 + benchmark_return, 1 / self.annualized_factor) - 1
 
     def annualized_return_relative_to_benchmark(self):
         return self.annualized_return() - self.annualized_benchmark_return()
 
     def information_ratio(self):
-        relative_return = self.value_book["value"] - self.benchmark["value"]
-        ann_stddev = np.std(relative_return) * np.sqrt(self.ann_const)
+        relative_return_std = (
+            self.value_book.get_column("value") - self.benchmark.get_column("value")
+        ).std()
+        ann_stddev = relative_return_std * np.sqrt(self.ann_const)
         return self.annualized_return_relative_to_benchmark() / ann_stddev
 
     def information_coefficient(self):
