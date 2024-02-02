@@ -52,4 +52,4 @@ class BackTest:
             self.prev_rebalance_date = self.cur_date
             self.rebalance.run(self.cur_date)
             self.portfolio.update_portfolio(self.cur_date)
-            self.portfolio.print_snapshot(self.cur_date)
+            # self.portfolio.print_snapshot(self.cur_date)
