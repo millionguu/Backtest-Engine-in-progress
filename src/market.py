@@ -1,6 +1,8 @@
+import datetime
 import time
 import numpy as np
 import pandas as pd
+import polars as pl
 import sqlalchemy
 import yfinance
 
@@ -16,9 +18,10 @@ class Market:
             if not sqlalchemy.inspect(engine).has_table(table):
                 data = self.retrive_data_from_yfinance(security)
                 data.to_sql(table, con=engine, chunksize=1000, index=False)
-            self.data[table] = pd.read_sql(f"select * from {table}", engine)
-            self.data[table]["date"] = pd.to_datetime(self.data[table]["date"]).dt.date
-            time.sleep(3)
+                time.sleep(3)
+            self.data[table] = pl.read_database(
+                f"select * from {table}", engine.connect()
+            )
 
     def retrive_data_from_yfinance(self, security):
         data = yfinance.download(security, start="2000-01-01", end="2023-12-31")
@@ -30,24 +33,27 @@ class Market:
         return data
 
     def query_return(self, security, date):
+        if isinstance(date, type(datetime.date.today())):
+            date = date.strftime("%Y-%m-%d")
         table = security if not security.startswith("^") else security[1:]
-        condition = self.data[table]["date"] == date
-        if sum(condition) == 1:
-            return self.data[table][condition]["return"].to_numpy()[0]
+        res = self.data[table].filter(pl.col("date") == date)
+        if len(res) == 1:
+            return res.get_column("return").item(0)
         else:
-            # market close
+            # possibly market close
+            print(f"not found return value for {security} at {date}.")
             return 0
 
 
 if __name__ == "__main__":
     from datetime import date
-    from sqlalchemy import text
 
-    index = "^SPX"
-    table = "SPX"
-    with engine.connect() as conn, conn.begin():
-        conn.execute(text(f"drop table if exists {table};"))
+    # index = "^SPX"
+    # table = "SPX"
+    # with engine.connect() as conn, conn.begin():
+    #     conn.execute(text(f"drop table if exists {table};"))
+    # market = Market([index])
+    # print(market.retrive_data_from_yfinance(index).iloc[1])
 
-    market = Market([index])
-    print(market.retrive_data_from_yfinance(index).iloc[1])
-    print(market.query_return(index, date.fromisoformat("2023-01-04")))
+    market = Market(["XLI"])
+    print(market.query_return("XLI", "2023-01-04"))

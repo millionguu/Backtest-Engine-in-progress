@@ -3,20 +3,20 @@ from src.market import Market
 from src.portfolio import Portfolio
 from src.analysis import Analysis, Benchmark, Metric
 from src.rebalance import Rebalance
-from src.strategy import NoStrategy, StopGainAndLoss
+from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
-from src.factor.gyf import SalesGrowthFactor
+from src.factor.sales_growth import SalesGrowthFactor
 from src.factor.const import SECTOR_ETF
 
 
 start_date = date.fromisoformat("2022-01-01")
-end_date = date.fromisoformat("2022-12-21")
+end_date = date.fromisoformat("2023-10-21")
 security_universe = SECTOR_ETF
 
 market = Market(security_universe)
 
 ### Long factor
-long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long")
+long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long", 12)
 long_position = long_factor.get_position(start_date)
 long_portfolio = Portfolio(100.0, start_date, end_date)
 long_factor.set_portfolio_at_start(long_portfolio, long_position)
@@ -33,7 +33,7 @@ print(long_portfolio.value_book)
 
 
 ### Short factor
-short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short")
+short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short", 12)
 short_position = short_factor.get_position(start_date)
 short_portfolio = Portfolio(100.0, start_date, end_date)
 short_factor.set_portfolio_at_start(short_portfolio, short_position)

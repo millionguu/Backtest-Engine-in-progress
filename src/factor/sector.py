@@ -1,6 +1,4 @@
-import numpy as np
-import pandas as pd
-import duckdb
+import polars as pl
 
 from src.database import engine
 
@@ -8,77 +6,53 @@ from src.database import engine
 class Sector:
     @staticmethod
     def get_sector_construction():
-        sector_info = pd.read_sql("select * from msci_usa_sector_info", engine)
-        sector_weight = pd.read_sql("select * from msci_usa_sector_weight", engine)
-        merge = duckdb.sql(
-            """
-    select a.sedol7, a.company, a.date, a.sector, b.weight
-    from (
-        select sedol7, company, date, sector
-        from sector_info
-        ) as a
-        join (
-            select sedol7, company, date, weight
-            from sector_weight
-        ) as b 
-        on a.sedol7 = b.sedol7
-            and a.date = b.date
-    """
-        ).df()
+        sector_info = pl.read_database(
+            "select * from msci_usa_sector_info", engine.connect()
+        ).select(["sedol7", "date", "sector"])
 
-        sector_df = duckdb.sql(
-            """
-    select
-        base.sedol7, base.company, base.date, base.sector,
-        base.weight / new_weight_base.total_weight as weight
-    from (
-        select *
-        from merge) as base
-        left outer join (
-        select
-            date, sector, sum(weight) as total_weight
-        from merge
-        group by
-            date,
-            sector) as new_weight_base 
-        on base.date = new_weight_base.date
-            and base.sector = new_weight_base.sector
-    """
-        ).df()
-        return sector_df
+        sector_weight = pl.read_database(
+            "select * from msci_usa_sector_weight", engine.connect()
+        ).select(["sedol7", "date", "weight"])
+
+        merge = sector_info.join(
+            sector_weight, on=["sedol7", "date"], how="inner"
+        ).select(["sedol7", "date", "sector", "weight"])
+
+        new_weight_base = merge.group_by(["date", "sector"]).agg(
+            pl.col("weight").sum().alias("total_weight")
+        )
+
+        sector_weight_df = (
+            merge.join(new_weight_base, on=["date", "sector"], how="left")
+            .with_columns((pl.col("weight") / pl.col("total_weight")).alias("weight"))
+            .select(["sedol7", "date", "sector", "weight"])
+        )
+        return sector_weight_df
 
     @staticmethod
     def get_sector_signal(signal_df):
         """
         signal_df should have a column named signal
         """
-        sector_df = Sector.get_sector_construction()
-        sector_signal_df = duckdb.sql(
-            """
-select
-    sector.sector,
-    sector.date,
-    avg(signal.signal) as simply_signal,
-    -- incase sum(weight) is not equal to 1
-    sum(signal.signal * coalesce(sector.weight, 0)) / sum(sector.weight) as weighted_signal, 
-    sum(signal.signal * coalesce(sector.weight, 0)) as debug_signal 
-from (
-    select
-        *
-    from
-        signal_df
-    where 
-        signal is not null) as signal
-    left outer join (
-    select
-        *
-    from
-        sector_df) as sector 
-    on signal.sedol7 = sector.sedol7
-        and substring(signal.date, 1, 7) = substring(sector.date, 1, 7)
-group by
-    sector.sector,
-    sector.date
-    """
-        ).df()
+        signal_df = signal_df.with_columns(
+            pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
+        )
+        sector_df = Sector.get_sector_construction().with_columns(
+            pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
+        )
+        sector_signal_df = (
+            signal_df.filter(pl.col("signal").is_not_null())
+            .join(sector_df, on=["sedol7", "ym"], how="left")
+            .group_by(["sector", "date"])
+            .agg(
+                pl.col("signal").mean().alias("simple_signal"),
+                (
+                    (pl.col("signal") * pl.coalesce(pl.col("weight"), 0)).sum()
+                    / (pl.col("weight")).sum()
+                ).alias("weighted_signal"),
+                ((pl.col("signal") * pl.coalesce(pl.col("weight"), 0)))
+                .sum()
+                .alias("debug_signal"),
+            )
+        )
         return sector_signal_df
