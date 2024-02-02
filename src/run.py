@@ -3,9 +3,9 @@ from src.market import Market
 from src.portfolio import Portfolio
 from src.analysis import Analysis, Benchmark, Metric
 from src.rebalance import Rebalance
-from src.strategy import NoStrategy, StopGainAndLoss
+from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
-from src.factor.gyf import SalesGrowthFactor
+from src.factor.sales_growth import SalesGrowthFactor
 from src.factor.const import SECTOR_ETF
 
 
