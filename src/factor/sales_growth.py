@@ -58,7 +58,7 @@ class SalesGrowthFactor(BaseFactor):
             )
             .sort("z-score", descending=True)
         )
-        print(merge)
+        # print(merge)
         ordered_sector = merge.get_column("sector").to_list()
         return ordered_sector
 

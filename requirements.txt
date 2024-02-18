@@ -132,6 +132,7 @@ strictyaml==1.7.3
 tenacity==8.2.3
 terminado==0.18.0
 tinycss2==1.2.1
+tokenize-rt==5.2.0
 tornado==6.4
 tqdm==4.66.1
 traitlets==5.14.0
