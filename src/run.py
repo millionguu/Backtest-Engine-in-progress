@@ -9,8 +9,8 @@ from src.factor.sales_growth import SalesGrowthFactor
 from src.factor.const import SECTOR_ETF
 
 
-start_date = date.fromisoformat("2022-01-01")
-end_date = date.fromisoformat("2023-10-21")
+start_date = date.fromisoformat("2023-01-01")
+end_date = date.fromisoformat("2023-02-21")
 security_universe = SECTOR_ETF
 
 market = Market(security_universe)
@@ -59,8 +59,8 @@ print(
 print(f"information ratio: {metric.information_ratio()}")
 
 analysis = Analysis(
-    [long_portfolio, short_portfolio],
-    ["long strategy", "short strategy"],
+    long_portfolio,
+    short_portfolio,
     benchmark,
     "SPX",
 )

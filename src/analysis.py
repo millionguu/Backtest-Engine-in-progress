@@ -1,25 +1,51 @@
 import numpy as np
 import polars as pl
+import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from src.market import Market
 
 
 class Analysis:
-    def __init__(self, portfolios, portfolio_labels, benchmark, benchmark_label):
-        self.portfolios = portfolios
-        self.portfolio_labels = portfolio_labels
-        self.benchmark = benchmark
+    def __init__(self, long_portfolio, short_portfolio, benchmark, benchmark_label):
+        self.long_portfolio = long_portfolio
+        self.short_portfolio = short_portfolio
+        self.dates = pd.to_datetime(long_portfolio.value_book["date"])
+        self.benchmark = benchmark.to_numpy().reshape(-1)
         self.benchmark_label = benchmark_label
-        fig, ax = plt.subplots(1, 1)
-        self.ax = ax
+        _, self.ax = plt.subplots(1, 1, figsize=(10, 5))
 
     def draw(self):
-        colors = ["tab:red", "tab:green"]
-        for p, l, c in zip(self.portfolios, self.portfolio_labels, colors):
-            self.ax.plot(p.value_book["value"], label=l, color=c)
+        portfolios = [self.long_portfolio, self.short_portfolio]
+        portfolio_labels = [
+            f"LONG - {self.benchmark_label}",
+            f"SHORT - {self.benchmark_label}",
+        ]
+        colors = ["tab:green", "tab:red"]
+        for p, l, c in zip(portfolios, portfolio_labels, colors):
+            relative_value = p.value_book["value"] - self.benchmark
+            self.ax.plot(self.dates, relative_value, label=l, color=c)
 
-        self.ax.plot(self.benchmark, label=self.benchmark_label, color="tab:blue")
+        self.ax.plot(
+            self.dates,
+            self.benchmark - self.benchmark,
+            label=f"{self.benchmark_label} - {self.benchmark_label}",
+            color="tab:blue",
+        )
+
+        self.ax.plot(
+            self.dates,
+            self.long_portfolio.value_book["value"]
+            - self.short_portfolio.value_book["value"],
+            label="LONG - SHORT",
+            color="tab:pink",
+        )
+        fmt = mdates.DateFormatter("%Y-%m-%d")
+        self.ax.xaxis.set_major_formatter(fmt)
+        self.ax.set_xticks(self.dates[::30])
+        self.ax.grid(True)
         self.ax.legend()
+        self.ax.set_title("Portofolio Return Relative to Benchmark")
         plt.show()
 
 
