@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-import numpy as np
 from enum import Enum
 from dataclasses import dataclass
-import random
 
 
 class OrderType(Enum):
@@ -24,7 +22,7 @@ class Strategy(ABC):
         self.blacklist = blacklist
 
     @abstractmethod
-    def get_order(self, target_security, cur_date):
+    def get_order(self, security, iter_index):
         pass
 
 
@@ -32,24 +30,7 @@ class NoStrategy(Strategy):
     def __init__(self, portfolio, blacklist):
         super().__init__(portfolio, blacklist)
 
-    def get_order(self, target_security, cur_date):
-        return Order(OrderType.NOOP)
-
-
-class RandomBuyAndSell(Strategy):
-    def __init__(self, portfolio, blacklist):
-        super().__init__(portfolio, blacklist)
-        self.state = True
-        self.target_security = "RUT"
-
-    def get_order(self, target_security, cur_date):
-        if target_security == self.target_security and random.random() > 0.7:
-            if self.state:
-                self.state = not (self.state)
-                return Order(OrderType.BUY, target_security, 0.1)
-            else:
-                self.state = not (self.state)
-                return Order(OrderType.SELL, target_security, 0.1)
+    def get_order(self, security, iter_index):
         return Order(OrderType.NOOP)
 
 
@@ -62,24 +43,25 @@ class StopGainAndLoss(Strategy):
         self.gain_limit = gain_limit
         self.loss_limit = -abs(loss_limit)
 
-    def get_order(self, target_security, cur_date, prev_rebalance_date):
-        security_book = self.portfolio.security_book[target_security]
-        cur_value = security_book[security_book["date"] == cur_date]["value"].iloc[0]
+    def get_order(self, security, iter_index, prev_rebalance_index):
+        cur_value = self.portfolio.get_security_value(security, iter_index)
         if cur_value == 0:
             return Order(OrderType.NOOP)
 
         # previous rebalance date
-        start_value = security_book[security_book["date"] == prev_rebalance_date][
-            "value"
-        ].iloc[0]
+        start_value = self.portfolio.get_security_value(security, prev_rebalance_index)
         range_return = (cur_value - start_value) / start_value
 
         if range_return > self.gain_limit or range_return < self.loss_limit:
-            weight = security_book[security_book["date"] == cur_date]["weight"].iloc[0]
-            self.blacklist.append(target_security)
             if range_return > 0:
-                print(f"{cur_date}: stop gain {target_security}")
+                print(
+                    f"{self.portfolio.date_df.item(iter_index, 0)}: stop gain {security}"
+                )
             else:
-                print(f"{cur_date}: stop loss {target_security}")
-            return Order(OrderType.SELL, target_security, weight)
+                print(
+                    f"{self.portfolio.date_df.item(iter_index, 0)}: stop loss {security}"
+                )
+            self.blacklist.append(security)
+            weight = self.portfolio.get_security_weight(security, iter_index)
+            return Order(OrderType.SELL, security, weight)
         return Order(OrderType.NOOP)

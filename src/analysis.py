@@ -1,6 +1,5 @@
 import numpy as np
 import polars as pl
-import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from src.market import Market
@@ -10,7 +9,7 @@ class Analysis:
     def __init__(self, long_portfolio, short_portfolio, benchmark, benchmark_label):
         self.long_portfolio = long_portfolio
         self.short_portfolio = short_portfolio
-        self.dates = pd.to_datetime(long_portfolio.value_book["date"])
+        self.dates = long_portfolio.value_book["date"]
         self.benchmark = benchmark.to_numpy().reshape(-1)
         self.benchmark_label = benchmark_label
         _, self.ax = plt.subplots(1, 1, figsize=(10, 5))
@@ -43,7 +42,7 @@ class Analysis:
         step = self.dates.shape[0] // 30
         self.ax.set_xticks(
             ticks=self.dates[::step],
-            labels=self.dates[::step].dt.strftime("%Y-%m-%d"),
+            labels=self.dates[::step],
             rotation=90,
         )
         self.ax.grid(True)
@@ -77,7 +76,7 @@ class Metric:
     def __init__(self, portfolio, benchmark):
         self.portfolio = portfolio
         self.benchmark = benchmark
-        self.value_book = pl.from_pandas(self.portfolio.value_book)
+        self.value_book = self.portfolio.value_book
         self.num_dates = self.value_book.shape[0]
         self.ann_const = 252
         self.annualized_factor = self.num_dates / self.ann_const

@@ -10,7 +10,9 @@ from src.database import engine
 
 
 class Market:
-    def __init__(self, securities):
+    def __init__(self, securities, start_date, end_date):
+        start_date = start_date.isoformat()
+        end_date = end_date.isoformat()
         self.securities = securities
         self.data = dict()
         for security in self.securities:
@@ -20,7 +22,11 @@ class Market:
                 data.to_sql(table, con=engine, chunksize=1000, index=False)
                 time.sleep(3)
             self.data[table] = pl.read_database(
-                f"select * from {table}", engine.connect()
+                query=f"select * from {table} where date >= :start_date and date <= :end_date",
+                connection=engine,
+                execute_options={
+                    "parameters": {"start_date": start_date, "end_date": end_date}
+                },
             )
 
     def retrive_data_from_yfinance(self, security):
@@ -40,7 +46,6 @@ class Market:
         if len(res) == 1:
             return res.get_column("return").item(0)
         else:
-            # possibly market close
             print(f"not found return value for {security} at {date}.")
             return 0
 

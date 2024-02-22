@@ -18,7 +18,7 @@ class SalesGrowthFactor(BaseFactor):
 
     def set_portfolio_at_start(self, portfolio, position):
         for security, weight in position:
-            portfolio.add_security_weight(security, weight, portfolio.start_date)
+            portfolio.add_security_weight(security, weight, 0)
 
     @cache
     def get_security_list(self, date):

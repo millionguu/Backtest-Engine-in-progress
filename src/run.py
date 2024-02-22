@@ -9,11 +9,11 @@ from src.factor.sales_growth import SalesGrowthFactor
 from src.factor.const import SECTOR_ETF
 
 
-start_date = date.fromisoformat("2023-01-01")
+start_date = date.fromisoformat("2013-01-01")
 end_date = date.fromisoformat("2023-02-21")
 security_universe = SECTOR_ETF
 
-market = Market(security_universe)
+market = Market(security_universe, start_date, end_date)
 
 ### Long factor
 long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long", 12)
