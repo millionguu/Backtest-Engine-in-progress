@@ -40,9 +40,12 @@ class Analysis:
             label="LONG - SHORT",
             color="tab:pink",
         )
-        fmt = mdates.DateFormatter("%Y-%m-%d")
-        self.ax.xaxis.set_major_formatter(fmt)
-        self.ax.set_xticks(self.dates[::30])
+        step = self.dates.shape[0] // 30
+        self.ax.set_xticks(
+            ticks=self.dates[::step],
+            labels=self.dates[::step].dt.strftime("%Y-%m-%d"),
+            rotation=90,
+        )
         self.ax.grid(True)
         self.ax.legend()
         self.ax.set_title("Portofolio Return Relative to Benchmark")
