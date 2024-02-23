@@ -9,24 +9,10 @@ class BaseFactor(ABC):
         self.factor_type = factor_type
 
     def get_position(self, date):
-        if self.factor_type == "long":
-            return self.get_long_position(date)
-        elif self.factor_type == "short":
-            return self.get_short_position(date)
-        else:
-            return None
-
-    def get_long_position(self, date):
         security_list = self.get_security_list(date)
-        first_quintile = self.get_quintile(security_list)
-        weight = 1 / len(first_quintile)
-        return [(s, weight) for s in first_quintile]
-
-    def get_short_position(self, date):
-        security_list = self.get_security_list(date)
-        last_quintile = self.get_quintile(security_list, ordinal=5)
-        weight = 1 / len(last_quintile)
-        return [(s, weight) for s in last_quintile]
+        target_security = self.get_target_security(security_list)
+        weight = 1 / len(target_security)
+        return [(s, weight) for s in target_security]
 
     @abstractmethod
     def get_security_list(self, date):
@@ -36,15 +22,11 @@ class BaseFactor(ABC):
     def set_portfolio_at_start(self, portfolio):
         pass
 
-    @staticmethod
-    def get_quintile(security_list, ordinal=1, base=5):
-        gran = len(security_list) // base
-        if ordinal == base:
-            return security_list[(ordinal - 1) * gran : -1]
+    def get_target_security(self, security_list, num=3):
+        if self.factor_type == "long":
+            return security_list[:num]
         else:
-            return security_list[(ordinal - 1) * gran : ordinal * gran]
-
-
+            return list(reversed(security_list))[:num]
 
 
 class DummyFactor(BaseFactor):

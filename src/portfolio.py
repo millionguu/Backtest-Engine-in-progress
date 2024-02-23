@@ -76,7 +76,7 @@ class Portfolio:
         """
         3. happens at the close price of the day, after daily return updated
         sold before buy
-        don't change total value
+        won't change total value
         """
         self.security_book[security][iter_index]["weight"] = (
             self.get_security_weight(security, iter_index) - reduce_weight
@@ -96,7 +96,7 @@ class Portfolio:
         """
         4. happens at the close price of the day, after daily return updated
         sold before buy
-        don't change total value
+        won't change total value
         """
         add_value = self.get_total_value(iter_index) * add_weight
         self.value_book[iter_index]["cash"] = (
