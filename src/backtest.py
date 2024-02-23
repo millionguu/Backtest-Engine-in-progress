@@ -7,17 +7,17 @@ class BackTest:
         self.date_df = self.portfolio.date_df.clone()
         # start trading from the second day
         self.iter_index = 1
-        self.cur_date = self.date_df.item(self.iter_index, 0)
         self.strategy = strategy
         self.market = market
         self.rebalance = rebalance
         self.prev_rebalance_index = self.iter_index
 
     def run(self):
-        while self.cur_date <= self.portfolio.end_date:
+        last_index = self.portfolio.value_book[-1]["index"]
+        while self.iter_index <= last_index:
+            self.cur_date = self.date_df.item(self.iter_index, 0)
             self.iterate()
             self.iter_index += 1
-            self.cur_date = self.date_df.item(self.iter_index, 0)
         self.portfolio.finish()
 
     def iterate(self):
@@ -49,11 +49,8 @@ class BackTest:
                     self.rebalance.run(self.iter_index)
             else:
                 pass
-        # self.portfolio.update_portfolio(self.cur_date)
 
         # apply rebalance
         if self.iter_index % self.rebalance.period == 0:
             self.rebalance.run(self.iter_index)
             self.prev_rebalance_index = self.iter_index
-            # self.portfolio.update_portfolio(self.iter_index)
-            # self.portfolio.print_snapshot(self.cur_date)

@@ -10,9 +10,9 @@ from src.database import engine
 
 
 class Market:
-    def __init__(self, securities, start_date, end_date):
-        start_date = start_date.isoformat()
-        end_date = end_date.isoformat()
+    def __init__(self, securities, start_date: str, end_date: str):
+        self.start_date = start_date.strftime("%Y-%m-%d")
+        self.end_date = end_date.strftime("%Y-%m-%d")
         self.securities = securities
         self.data = dict()
         for security in self.securities:
