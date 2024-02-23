@@ -8,12 +8,11 @@ from src.backtest import BackTest
 from src.factor.sales_growth import SalesGrowthFactor
 from src.factor.const import SECTOR_ETF
 
-
-start_date = date.fromisoformat("2023-01-01")
-end_date = date.fromisoformat("2023-02-21")
+start_date = date.fromisoformat("2023-05-01")
+end_date = date.fromisoformat("2023-10-21")
 security_universe = SECTOR_ETF
 
-market = Market(security_universe)
+market = Market(security_universe, start_date, end_date)
 
 ### Long factor
 long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long", 12)
@@ -23,13 +22,13 @@ long_factor.set_portfolio_at_start(long_portfolio, long_position)
 
 blacklist = []
 strategy = StopGainAndLoss(long_portfolio, blacklist)
-strategy.set_limit(0.3, 0.3)
-rebalance = Rebalance(60, long_portfolio, long_factor, blacklist)
+strategy.set_limit(0.5, 0.3)
+rebalance = Rebalance(30, long_portfolio, long_factor, blacklist)
 
 backtest = BackTest(long_portfolio, strategy, market, rebalance)
 backtest.run()
 
-print(long_portfolio.value_book)
+# print(long_portfolio.value_book)
 
 
 ### Short factor
@@ -40,15 +39,17 @@ short_factor.set_portfolio_at_start(short_portfolio, short_position)
 
 blacklist = []
 strategy = StopGainAndLoss(short_portfolio, blacklist)
-strategy.set_limit(0.3, 0.3)
-rebalance = Rebalance(60, short_portfolio, short_factor, blacklist)
+strategy.set_limit(0.5, 0.3)
+rebalance = Rebalance(30, short_portfolio, short_factor, blacklist)
 
 backtest = BackTest(short_portfolio, strategy, market, rebalance)
 backtest.run()
 
-print(short_portfolio.value_book)
+# print(short_portfolio.value_book)
 
 ### plot
+import matplotlib.pyplot as plt
+
 benchmark = Benchmark("^SPX", start_date, end_date).get_performance()
 
 metric = Metric(long_portfolio, benchmark)
@@ -65,3 +66,5 @@ analysis = Analysis(
     "SPX",
 )
 analysis.draw()
+
+plt.show()

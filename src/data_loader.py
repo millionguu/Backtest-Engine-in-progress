@@ -1,6 +1,6 @@
 from datetime import datetime
-import numpy as np
 import pandas as pd
+import polars as pl
 from sqlalchemy import text
 import yfinance
 from src.database import engine
@@ -72,10 +72,14 @@ def write_market_open_date(engine):
 
 
 def get_market_open_date(engine, start_date, end_date):
-    df = pd.read_sql(f"select date from us_market_open_date", engine)
-    df["date"] = pd.to_datetime(df["date"]).dt.date
-    condition = (df["date"] >= start_date) & (df["date"] <= end_date)
-    return df[condition]["date"].values
+    df = pl.read_database(
+        query="select date from us_market_open_date where date >= :start_date and date <= :end_date",
+        connection=engine,
+        execute_options={
+            "parameters": {"start_date": start_date, "end_date": end_date}
+        },
+    )
+    return df
 
 
 if __name__ == "__main__":

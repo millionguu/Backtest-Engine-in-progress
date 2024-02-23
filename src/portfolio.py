@@ -1,6 +1,6 @@
 from collections import defaultdict
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from src.data_loader import get_market_open_date
 from src.database import engine
@@ -9,106 +9,131 @@ from src.database import engine
 class Portfolio:
     def __init__(self, initial_cash, start_date, end_date):
         self.date_df = get_market_open_date(engine, start_date, end_date)
-        self.start_date = self.date_df[0]
-        self.end_date = self.date_df[-1]
+        self.start_date = self.date_df.item(0, 0)
+        self.end_date = self.date_df.item(-1, 0)
+        self.iter_index = 0
 
         self.security_book = defaultdict(self.empty_security_book)
-        self.value_book = pd.DataFrame.from_dict(
-            {
-                "date": np.copy(self.date_df),
-                "cash": initial_cash,
-                "value": initial_cash,
-            }
+        self.value_book = (
+            pl.DataFrame(
+                {
+                    "date": self.date_df.to_series(),
+                    "cash": initial_cash,
+                    "value": initial_cash,
+                }
+            )
+            .with_row_index()
+            .to_dicts()
         )
 
     def empty_security_book(self):
-        return pd.DataFrame.from_dict(
-            {
-                "date": np.copy(self.date_df),
-                "value": 0.0,
-                "weight": 0.0,
-            }
+        return (
+            pl.DataFrame(
+                {
+                    "date": self.date_df.to_series(),
+                    "weight": 0.0,
+                    "value": 0.0,
+                }
+            )
+            .with_row_index()
+            .to_dicts()
         )
 
-    def hold_securities(self, date):
+    def hold_securities(self, iter_index):
         res = []
         for security in list(self.security_book.keys()):
-            value = self.get_security_value(security, date)
+            value = self.get_security_value(security, iter_index)
             if value > 0:
                 res.append(security)
         return res
 
-    def get_next_market_date(self, cur_date):
-        idx = np.argmax(self.date_df == cur_date)
-        return self.date_df[idx + 1]
+    def update_security_value(self, security, iter_index, daily_return):
+        """
+        1. update security value based on daily_return,
+        security weight should be updated based on the value book
+        """
+        self.security_book[security][iter_index]["value"] = self.get_security_value(
+            security, iter_index - 1
+        ) * (1 + daily_return)
 
-    def add_security_weight(self, security, add_weight, date):
-        add_value = self.get_total_value(date) * add_weight
-        if self.get_remain_cash(date) < add_value:
-            raise ValueError("not enough cash to add")
-        else:
-            condition = self.value_book["date"] >= date
-            self.value_book.loc[condition, "cash"] -= add_value
+    def update_portfolio(self, iter_index):
+        """
+        2. update value book and security weight based on new security value
+        """
+        self.value_book[iter_index]["cash"] = self.get_remain_cash(iter_index - 1)
+        total_value = self.get_remain_cash(iter_index)
+        for security in self.hold_securities(iter_index):
+            total_value += self.get_security_value(security, iter_index)
+        self.value_book[iter_index]["value"] = total_value
 
-            condition = self.security_book[security]["date"] >= date
-            self.security_book[security].loc[condition, "value"] += add_value
-            self.security_book[security].loc[condition, "weight"] += add_weight
-
-    def reduce_security_weight(self, security, reduce_weight, date):
-        remaining_weight = self.get_security_weight(security, date)
-        remaining_value = self.get_security_value(security, date)
-        if reduce_weight > remaining_weight:
-            raise ValueError("not enough value to reduce")
-        else:
-            reduce_value = (reduce_weight / remaining_weight) * remaining_value
-            condition = self.security_book[security]["date"] >= date
-            self.security_book[security].loc[condition, "value"] -= reduce_value
-            self.security_book[security].loc[condition, "weight"] -= reduce_weight
-
-            condition = self.value_book["date"] >= date
-            self.value_book.loc[condition, "cash"] += reduce_value
-
-    def get_security_weight(self, security, date):
-        condition = self.security_book[security]["date"] == date
-        return self.security_book[security][condition]["weight"].to_numpy()[0]
-
-    def get_security_value(self, security, date):
-        condition = self.security_book[security]["date"] == date
-        return self.security_book[security][condition]["value"].to_numpy()[0]
-
-    def get_remain_cash(self, date):
-        condition = self.value_book["date"] == date
-        return self.value_book[condition]["cash"].to_numpy()[0]
-
-    def get_total_value(self, date):
-        condition = self.value_book["date"] == date
-        return self.value_book[condition]["value"].to_numpy()[0]
-
-    def print_snapshot(self, date):
-        total_value = self.get_total_value(date)
-        res = []
-        for security in self.hold_securities(date):
-            value = self.get_security_value(security, date)
-            if value > 0:
-                res.append((security, value))
-        print(f"total value: {total_value}")
-        print(res)
-
-    def update_security_value(self, security, date, daily_return):
-        """update security value"""
-        condition = self.security_book[security]["date"] >= date
-        self.security_book[security].loc[condition, "value"] *= 1 + daily_return
-
-    def update_portfolio(self, date):
-        """update security weight based on security value"""
-        total_value = self.get_remain_cash(date)
-        for security in self.hold_securities(date):
-            total_value += self.get_security_value(security, date)
-        condition = self.value_book["date"] >= date
-        self.value_book.loc[condition, "value"] = total_value
-
-        for security in self.hold_securities(date):
-            condition = self.security_book[security]["date"] >= date
-            self.security_book[security].loc[condition, "weight"] = np.divide(
-                self.security_book[security][condition]["value"], total_value
+        for security in self.hold_securities(iter_index):
+            self.security_book[security][iter_index]["weight"] = np.divide(
+                self.get_security_value(security, iter_index),
+                self.get_total_value(iter_index),
             )
+
+    def reduce_security_weight(self, security, reduce_weight, iter_index):
+        """
+        3. happens at the close price of the day, after daily return updated
+        sold before buy
+        won't change total value
+        """
+        self.security_book[security][iter_index]["weight"] = (
+            self.get_security_weight(security, iter_index) - reduce_weight
+        )
+        if self.get_security_weight(security, iter_index) < 0:
+            raise ValueError("not enough value to reduce")
+
+        reduce_value = reduce_weight * self.get_total_value(iter_index)
+        self.security_book[security][iter_index]["value"] = (
+            self.get_security_value(security, iter_index) - reduce_value
+        )
+        self.value_book[iter_index]["cash"] = (
+            self.get_remain_cash(iter_index) + reduce_value
+        )
+
+    def add_security_weight(self, security, add_weight, iter_index):
+        """
+        4. happens at the close price of the day, after daily return updated
+        sold before buy
+        won't change total value
+        """
+        add_value = self.get_total_value(iter_index) * add_weight
+        self.value_book[iter_index]["cash"] = (
+            self.get_remain_cash(iter_index) - add_value
+        )
+        if self.get_remain_cash(iter_index) < 0:
+            raise ValueError("not enough cash to add")
+
+        self.security_book[security][iter_index]["weight"] = (
+            self.get_security_weight(security, iter_index) + add_weight
+        )
+        self.security_book[security][iter_index]["value"] = (
+            self.get_security_value(security, iter_index) + add_value
+        )
+
+    def finish(self):
+        self.value_book = pl.DataFrame(self.value_book)
+        for security, book in self.security_book.items():
+            self.security_book[security] = pl.DataFrame(book)
+
+    def get_security_weight(self, security, iter_index):
+        return self.security_book[security][iter_index]["weight"]
+
+    def get_security_value(self, security, iter_index):
+        return self.security_book[security][iter_index]["value"]
+
+    def get_remain_cash(self, iter_index):
+        return self.value_book[iter_index]["cash"]
+
+    def get_total_value(self, iter_index):
+        return self.value_book[iter_index]["value"]
+
+    def print_snapshot(self, iter_index):
+        total_value = self.get_total_value(iter_index)
+        res = []
+        for security in self.hold_securities(iter_index):
+            value = self.get_security_value(security, iter_index)
+            res.append(": ".join((security, value)))
+        print(f"total value: {total_value}")
+        print(". ".join(res))

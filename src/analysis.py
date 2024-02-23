@@ -1,48 +1,48 @@
 import numpy as np
 import polars as pl
-import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 from src.market import Market
 
 
 class Analysis:
     def __init__(self, long_portfolio, short_portfolio, benchmark, benchmark_label):
-        self.long_portfolio = long_portfolio
-        self.short_portfolio = short_portfolio
-        self.dates = pd.to_datetime(long_portfolio.value_book["date"])
-        self.benchmark = benchmark.to_numpy().reshape(-1)
+        self.long_portfolio_value = long_portfolio.value_book.get_column("value")
+        self.short_portfolio_value = short_portfolio.value_book.get_column("value")
+        self.dates = long_portfolio.date_df.get_column("date")
+        self.benchmark_value = benchmark.get_column("value")
         self.benchmark_label = benchmark_label
         _, self.ax = plt.subplots(1, 1, figsize=(10, 5))
 
     def draw(self):
-        portfolios = [self.long_portfolio, self.short_portfolio]
+        portfolios = [self.long_portfolio_value, self.short_portfolio_value]
         portfolio_labels = [
             f"LONG - {self.benchmark_label}",
             f"SHORT - {self.benchmark_label}",
         ]
         colors = ["tab:green", "tab:red"]
         for p, l, c in zip(portfolios, portfolio_labels, colors):
-            relative_value = p.value_book["value"] - self.benchmark
+            relative_value = p - self.benchmark_value
             self.ax.plot(self.dates, relative_value, label=l, color=c)
 
         self.ax.plot(
             self.dates,
-            self.benchmark - self.benchmark,
+            self.benchmark_value - self.benchmark_value,
             label=f"{self.benchmark_label} - {self.benchmark_label}",
             color="tab:blue",
         )
 
         self.ax.plot(
             self.dates,
-            self.long_portfolio.value_book["value"]
-            - self.short_portfolio.value_book["value"],
+            self.long_portfolio_value - self.short_portfolio_value,
             label="LONG - SHORT",
             color="tab:pink",
         )
-        fmt = mdates.DateFormatter("%Y-%m-%d")
-        self.ax.xaxis.set_major_formatter(fmt)
-        self.ax.set_xticks(self.dates[::30])
+        step = self.dates.shape[0] // 30
+        self.ax.set_xticks(
+            ticks=self.dates[::step],
+            labels=self.dates[::step],
+            rotation=90,
+        )
         self.ax.grid(True)
         self.ax.legend()
         self.ax.set_title("Portofolio Return Relative to Benchmark")
@@ -52,15 +52,16 @@ class Analysis:
 class Benchmark:
     def __init__(self, benchmark, start_date, end_date):
         self.benchmark = benchmark if not benchmark.startswith("^") else benchmark[1:]
-        self.start_date = start_date.strftime("%Y-%m-%d")
-        self.end_date = end_date.strftime("%Y-%m-%d")
+        self.start_date = start_date
+        self.end_date = end_date
 
     def get_performance(self):
-        market = Market([self.benchmark])
+        market = Market([self.benchmark], self.start_date, self.end_date)
         df = market.data[self.benchmark]
         df = (
             df.filter(
-                (pl.col("date") >= self.start_date) & (pl.col("date") <= self.end_date)
+                (pl.col("date") >= self.start_date.strftime("%Y-%m-%d"))
+                & (pl.col("date") <= self.end_date.strftime("%Y-%m-%d"))
             )
             .rename({"adj close": "value"})
             .select("value")
@@ -74,7 +75,7 @@ class Metric:
     def __init__(self, portfolio, benchmark):
         self.portfolio = portfolio
         self.benchmark = benchmark
-        self.value_book = pl.from_pandas(self.portfolio.value_book)
+        self.value_book = self.portfolio.value_book
         self.num_dates = self.value_book.shape[0]
         self.ann_const = 252
         self.annualized_factor = self.num_dates / self.ann_const
