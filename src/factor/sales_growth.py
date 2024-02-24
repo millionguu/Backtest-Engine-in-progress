@@ -1,6 +1,5 @@
 from src.factor.base_factor import BaseFactor
 from src.sector.sales_growth import SalesGrowthSector
-from src.fund_universe import SECTOR_ETF
 
 
 class SalesGrowthFactor(BaseFactor):
@@ -24,12 +23,3 @@ class SalesGrowthFactor(BaseFactor):
                 if security.sector == sector:
                     etf_list.append(security)
         return etf_list
-
-
-if __name__ == "__main__":
-    from datetime import date
-
-    start_date = date.fromisoformat("2022-01-01")
-    end_date = date.fromisoformat("2022-02-15")
-    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date, "long")
-    df = factor.build_single_month_sector_factor(end_date)

@@ -7,11 +7,11 @@ from src.rebalance import Rebalance
 from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
 from src.factor.sales_growth import SalesGrowthFactor
-from src.fund_universe import SECTOR_ETF
+from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
 start_date = date.fromisoformat("2023-05-01")
 end_date = date.fromisoformat("2023-10-21")
-security_universe = SECTOR_ETF
+security_universe = SECTOR_ETF_LIPPER
 
 market = Market(security_universe, start_date, end_date)
 

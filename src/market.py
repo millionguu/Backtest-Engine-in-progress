@@ -87,7 +87,7 @@ class Market:
             pl.col("lipper_id").cast(pl.String) == str(security)
         )
         if len(res) == 1:
-            return res.get_column("return").item(0)
+            return res.get_column("return").item(0) * 0.01
         else:
             # print(f"not found return value for {security} at {date}.")
             return 0
