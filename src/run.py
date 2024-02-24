@@ -1,4 +1,5 @@
 from datetime import date
+from src.security_symbol import SecurityTicker
 from src.market import Market
 from src.portfolio import Portfolio
 from src.analysis import Analysis, Benchmark, Metric
@@ -6,7 +7,7 @@ from src.rebalance import Rebalance
 from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
 from src.factor.sales_growth import SalesGrowthFactor
-from src.factor.const import SECTOR_ETF
+from src.fund_universe import SECTOR_ETF
 
 start_date = date.fromisoformat("2023-05-01")
 end_date = date.fromisoformat("2023-10-21")
@@ -15,10 +16,9 @@ security_universe = SECTOR_ETF
 market = Market(security_universe, start_date, end_date)
 
 ### Long factor
-long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long", 12)
-long_position = long_factor.get_position(start_date)
+long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long")
 long_portfolio = Portfolio(100.0, start_date, end_date)
-long_factor.set_portfolio_at_start(long_portfolio, long_position)
+long_factor.set_portfolio_at_start(long_portfolio)
 
 blacklist = []
 strategy = StopGainAndLoss(long_portfolio, blacklist)
@@ -32,10 +32,9 @@ backtest.run()
 
 
 ### Short factor
-short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short", 12)
-short_position = short_factor.get_position(start_date)
+short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short")
 short_portfolio = Portfolio(100.0, start_date, end_date)
-short_factor.set_portfolio_at_start(short_portfolio, short_position)
+short_factor.set_portfolio_at_start(short_portfolio)
 
 blacklist = []
 strategy = StopGainAndLoss(short_portfolio, blacklist)
@@ -48,9 +47,9 @@ backtest.run()
 # print(short_portfolio.value_book)
 
 ### plot
-import matplotlib.pyplot as plt
-
-benchmark = Benchmark("^SPX", start_date, end_date).get_performance()
+benchmark = Benchmark(
+    SecurityTicker("SPX", "index"), start_date, end_date
+).get_performance()
 
 metric = Metric(long_portfolio, benchmark)
 print(f"portfolio annulized return: {metric.annualized_return()}")
@@ -66,5 +65,3 @@ analysis = Analysis(
     "SPX",
 )
 analysis.draw()
-
-plt.show()

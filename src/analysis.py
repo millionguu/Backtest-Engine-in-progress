@@ -51,7 +51,7 @@ class Analysis:
 
 class Benchmark:
     def __init__(self, benchmark, start_date, end_date):
-        self.benchmark = benchmark if not benchmark.startswith("^") else benchmark[1:]
+        self.benchmark = benchmark
         self.start_date = start_date
         self.end_date = end_date
 

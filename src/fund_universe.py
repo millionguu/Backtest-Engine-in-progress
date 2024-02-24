@@ -1,4 +1,7 @@
 # source: https://www.cnbc.com/sector-etfs/
+from src.security_symbol import SecurityTicker
+
+
 SECTOR_ETF_MAPPING = {
     "Consumer Discretionary": "XLY",
     "Energy": "XLE",
@@ -14,7 +17,7 @@ SECTOR_ETF_MAPPING = {
 }
 
 
-SECTOR_ETF = list(SECTOR_ETF_MAPPING.values())
+SECTOR_ETF = [SecurityTicker(v, k) for k, v in SECTOR_ETF_MAPPING.items()]
 
 
 # data.select(pl.all()).select(pl.col("Schemes")).unique().map_rows(lambda row: row[0][14:])
