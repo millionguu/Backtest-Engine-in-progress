@@ -71,6 +71,27 @@ def write_market_open_date(engine):
     data["date"].to_sql(table, con=engine, chunksize=1000, index=False)
 
 
+def write_lipperid_return_data(engine):
+    table = "us_sector_fund_return_lipperid"
+    data = pl.read_excel("data/US Sector Fund and Benchmark Return TS.xlsx")
+    data = (
+        data.with_columns(
+            pl.col("StartDate").str.to_date("%m-%d-%y"),
+            pl.col("EndDate").str.to_date("%m-%d-%y"),
+        )
+        .rename(
+            {
+                "LipperID": "lipper_id",
+                "StartDate": "start_date",
+                "EndDate": "end_date",
+                "Value": "return",
+            }
+        )
+        .select(["lipper_id", "start_date", "end_date", "return"])
+    )
+    data.write_database(table, str(engine.url))
+
+
 def get_market_open_date(engine, start_date, end_date):
     df = pl.read_database(
         query="select date from us_market_open_date where date >= :start_date and date <= :end_date",
@@ -83,4 +104,5 @@ def get_market_open_date(engine, start_date, end_date):
 
 
 if __name__ == "__main__":
-    write_sales_growth_data(engine)
+    # write_sales_growth_data(engine)
+    write_lipperid_return_data(engine)

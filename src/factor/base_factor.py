@@ -9,8 +9,13 @@ class BaseFactor(ABC):
         self.factor_type = factor_type
 
     def get_position(self, date):
+        # hyperparameter, always return 3 funds in the fund selection
+        num = 3
         security_list = self.get_security_list(date)
-        target_security = self.get_target_security(security_list)
+        if self.factor_type == "long":
+            target_security = security_list[:num]
+        else:
+            target_security = list(reversed(security_list))[:num]
         weight = 1 / len(target_security)
         return [(s, weight) for s in target_security]
 
@@ -21,12 +26,6 @@ class BaseFactor(ABC):
     @abstractmethod
     def set_portfolio_at_start(self, portfolio):
         pass
-
-    def get_target_security(self, security_list, num=3):
-        if self.factor_type == "long":
-            return security_list[:num]
-        else:
-            return list(reversed(security_list))[:num]
 
 
 class DummyFactor(BaseFactor):

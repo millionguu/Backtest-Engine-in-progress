@@ -1,90 +1,25 @@
-from functools import cache
-from dateutil.relativedelta import relativedelta
-import polars as pl
-
-from src.database import engine
 from src.factor.base_factor import BaseFactor
-from src.factor.sector import Sector
-from src.factor.const import SECTOR_ETF_MAPPING, SECTOR_ETF
+from src.sector.sales_growth import SalesGrowthSector
 
 
 class SalesGrowthFactor(BaseFactor):
-    def __init__(
-        self, security_universe, start_date, end_date, factor_type, month_range
-    ):
-        # hyper parameter: generate z-score using data in the last n months
-        self.month_range = month_range
+    def __init__(self, security_universe, start_date, end_date, factor_type):
         super().__init__(security_universe, start_date, end_date, factor_type)
 
-    def set_portfolio_at_start(self, portfolio, position):
+    def set_portfolio_at_start(self, portfolio):
+        position = self.get_position(self.start_date)
         for security, weight in position:
             portfolio.add_security_weight(security, weight, 0)
 
-    @cache
     def get_security_list(self, date):
-        sector_list = self.sort_sector_using_z_score(date)
+        """
+        1. get the sorted sector based on the signal
+        2. sort the fund by sector order
+        """
+        sector_list = SalesGrowthSector("ntm").get_sector_list(date)
         etf_list = []
         for sector in sector_list:
-            if sector in SECTOR_ETF_MAPPING:
-                etf = SECTOR_ETF_MAPPING[sector]
-                etf_list.append(etf)
-            else:
-                raise ValueError(f"couln't find etf for {sector} sector")
+            for security in self.security_universe:
+                if security.sector == sector:
+                    etf_list.append(security)
         return etf_list
-
-    def sort_sector_using_z_score(self, observe_date):
-        total_df_list = []
-        for delta in range(self.month_range):
-            date = observe_date - relativedelta(months=delta)
-            df = self.build_single_month_sector_factor(date)
-            total_df_list.append(df)
-        total_df = pl.concat(total_df_list)
-
-        prev_month, cur_month = self.get_last_month_bound(observe_date)
-        cur_signal = total_df.filter(pl.col("date") > prev_month).clone()
-        assert len(cur_month) < 15
-
-        total_df = total_df.group_by(["sector"]).agg(
-            (pl.col("weighted_signal").std().alias("std")),
-            (pl.col("weighted_signal").mean().alias("mean")),
-        )
-
-        merge = (
-            cur_signal.join(total_df, on="sector", how="inner")
-            .with_columns(
-                ((pl.col("weighted_signal") - pl.col("mean")) / pl.col("std")).alias(
-                    "z-score"
-                )
-            )
-            .sort("z-score", descending=True)
-        )
-        # print(merge)
-        ordered_sector = merge.get_column("sector").to_list()
-        return ordered_sector
-
-    def build_single_month_sector_factor(self, date):
-        prev_month, cur_month = self.get_last_month_bound(date)
-        bound = f"where date between '{prev_month}' and '{cur_month}'"
-        signal_df = pl.read_database(
-            f"select * from msci_usa_sales_growth_ntm {bound}", engine.connect()
-        )
-        signal_df = signal_df.rename({"growth": "signal"})
-        sector_signal_df = Sector.get_sector_signal(signal_df).filter(
-            pl.col("sector") != "--"
-        )
-        return sector_signal_df
-
-    @staticmethod
-    def get_last_month_bound(date):
-        prev_month = (date - relativedelta(months=1)).strftime("%Y-%m")
-        cur_month = date.strftime("%Y-%m")
-        return (prev_month, cur_month)
-
-
-if __name__ == "__main__":
-    from datetime import date
-
-    start_date = date.fromisoformat("2022-01-01")
-    end_date = date.fromisoformat("2022-02-15")
-    factor = SalesGrowthFactor(SECTOR_ETF, start_date, end_date, "long")
-    df = factor.build_single_month_sector_factor(end_date)

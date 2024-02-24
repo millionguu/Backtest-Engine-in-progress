@@ -7,6 +7,7 @@ import sqlalchemy
 import yfinance
 
 from src.database import engine
+from src.security_symbol import SecurityTicker, SecurityLipper
 
 
 class Market:
@@ -15,22 +16,49 @@ class Market:
         self.end_date = end_date.strftime("%Y-%m-%d")
         self.securities = securities
         self.data = dict()
+        if isinstance(securities[0], SecurityTicker):
+            self.load_ticker_return_data()
+        elif isinstance(securities[0], SecurityLipper):
+            self.load_lipper_return_data()
+
+    def load_ticker_return_data(self):
         for security in self.securities:
-            table = security if not security.startswith("^") else security[1:]
-            if not sqlalchemy.inspect(engine).has_table(table):
+            table = str(security)
+            if not sqlalchemy.inspect(engine).has_table(str(table)):
                 data = self.retrive_data_from_yfinance(security)
                 data.to_sql(table, con=engine, chunksize=1000, index=False)
-                time.sleep(3)
-            self.data[table] = pl.read_database(
+                time.sleep(1)
+            self.data[security] = pl.read_database(
                 query=f"select * from {table} where date >= :start_date and date <= :end_date",
                 connection=engine,
                 execute_options={
-                    "parameters": {"start_date": start_date, "end_date": end_date}
+                    "parameters": {
+                        "start_date": self.start_date,
+                        "end_date": self.end_date,
+                    }
                 },
             )
 
+    def load_lipper_return_data(self):
+        # TODO:maybe filter on lipper_id
+        table = "us_sector_fund_return_lipperid"
+        self.data = pl.read_database(
+            query=f"select * from {table} where end_date >= :start_date and end_date <= :end_date",
+            connection=engine,
+            execute_options={
+                "parameters": {
+                    "start_date": self.start_date,
+                    "end_date": self.end_date,
+                }
+            },
+        )
+
     def retrive_data_from_yfinance(self, security):
-        data = yfinance.download(security, start="2000-01-01", end="2023-12-31")
+        if security.sector == "index":
+            ticker = str(security)[1:]
+        else:
+            ticker = str(security)
+        data = yfinance.download(ticker, start="2000-01-01", end="2023-12-31")
         data["return"] = np.divide(
             data["Adj Close"] - data["Adj Close"].shift(1), data["Adj Close"].shift(1)
         )
@@ -41,12 +69,27 @@ class Market:
     def query_return(self, security, date):
         if isinstance(date, type(datetime.date.today())):
             date = date.strftime("%Y-%m-%d")
-        table = security if not security.startswith("^") else security[1:]
-        res = self.data[table].filter(pl.col("date") == date)
+        if isinstance(security, SecurityTicker):
+            return self.query_ticker_return(security, date)
+        elif isinstance(security, SecurityLipper):
+            return self.query_lipper_return(security, date)
+
+    def query_ticker_return(self, security, date):
+        res = self.data[security].filter(pl.col("date") == date)
         if len(res) == 1:
             return res.get_column("return").item(0)
         else:
             print(f"not found return value for {security} at {date}.")
+            return 0
+
+    def query_lipper_return(self, security, date):
+        res = self.data.filter(pl.col("end_date") == date).filter(
+            pl.col("lipper_id").cast(pl.String) == str(security)
+        )
+        if len(res) == 1:
+            return res.get_column("return").item(0) * 0.01
+        else:
+            # print(f"not found return value for {security} at {date}.")
             return 0
 
 
@@ -59,6 +102,8 @@ if __name__ == "__main__":
     #     conn.execute(text(f"drop table if exists {table};"))
     # market = Market([index])
     # print(market.retrive_data_from_yfinance(index).iloc[1])
-
-    market = Market(["XLI"])
-    print(market.query_return("XLI", "2023-01-04"))
+    start_date = date.fromisoformat("2000-01-01")
+    end_date = date.fromisoformat("2004-10-01")
+    s = SecurityLipper("40056080")
+    market = Market([s], start_date, end_date)
+    print(market.query_return(s, "2002-11-29"))
