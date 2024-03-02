@@ -1,9 +1,8 @@
 from src.security_symbol import SecurityTicker, SecurityLipper
-import polars as pl
 
 
 # source: https://www.cnbc.com/sector-etfs/
-sector_etf_ticker_mapping = {
+cnbc_ticker_sector_etf = {
     "Consumer Discretionary": "XLY",
     "Energy": "XLE",
     "Real Estate": "VNQ",
@@ -46,5 +45,5 @@ blackrock_sector_etf = {
 }
 
 
-SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in sector_etf_ticker_mapping.items()]
+SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
 SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]

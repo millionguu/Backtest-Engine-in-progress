@@ -92,17 +92,94 @@ def write_lipperid_return_data(engine):
     data.write_database(table, str(engine.url))
 
 
-def get_market_open_date(engine, start_date, end_date):
-    df = pl.read_database(
-        query="select date from us_market_open_date where date >= :start_date and date <= :end_date",
-        connection=engine,
-        execute_options={
-            "parameters": {"start_date": start_date, "end_date": end_date}
-        },
+def write_sedol_ticker_mapping(engine):
+    table = "sedol_ticker_mapping"
+    data = pl.read_csv("data/SEDOL Tickers.csv")
+    data.with_columns(
+        pl.coalesce(pl.col("Ticker"), pl.col("Previous ticker")).alias("ticker")
+    ).select(
+        pl.col("SEDOL7").alias("sedol7"), pl.col("ticker"), pl.col("Name").alias("name")
     )
-    return df
+
+    data.write_database(table, str(engine.url))
+
+
+def write_eps_data(engine):
+    file_names = [
+        "Reported EPS Qtr.xlsx",
+        "Reported EPS Ann.xlsx",
+    ]
+    tables = [
+        "msci_usa_eps_quarterly",
+        "msci_usa_eps_annually",
+    ]
+    with engine.connect() as conn, conn.begin():
+        for table in tables:
+            conn.execute(text(f"drop table if exists {table};"))
+    for file_name, table in zip(file_names, tables):
+        data = pl.read_excel(f"data/{file_name}")
+        data = data.rename({"": "company", "SEDOL7": "sedol7"})
+        data = data.melt(
+            id_vars=["sedol7", "company"], variable_name="date", value_name="eps"
+        )
+        data.with_columns(
+            pl.col("date").str.to_date("%Y%m%d"), pl.col("eps").cast(pl.Float32)
+        )
+        data.write_database(table, str(engine.url))
+
+
+def write_price_data(engine):
+    file_name = "Price_MSCI USA_20001231-20231130.xlsx"
+    table = "msci_usa_price_daily"
+
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text(f"drop table if exists {table};"))
+    data = pl.read_excel(f"data/{file_name}")
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], variable_name="date", value_name="price"
+    )
+    data.with_columns(
+        pl.col("date").str.to_date("%Y%m%d"),
+        pl.col("price").cast(pl.Float32, strict=False),
+    )
+    data.write_database(table, str(engine.url))
+
+
+def write_cpi_data(engine):
+    table = "us_cpi_mom"
+    data = pl.read_csv("data/CPI Data.csv")
+    data = data.rename(
+        {
+            "Mnemonic": "date",
+            "US.CPIALL": "us_cpiall",
+            "US.CPICORE": "us_cpicore",
+            "BLSSUUR0000SA0": "blssuur",
+            "CNPR7096764": "cnpr",
+            "CN.CPICORE": "cn_cpicore",
+        }
+    ).select("date", "us_cpiall", "us_cpicore", "blssuur", "cnpr", "cn_cpicore")
+
+    data = data.with_columns(
+        pl.col("date").str.to_date("%Y/%m/%d"),
+        pl.col("us_cpiall").cast(pl.Float32, strict=False),
+        pl.col("us_cpicore").cast(pl.Float32, strict=False),
+        pl.col("blssuur").cast(pl.Float32, strict=False),
+        pl.col("cnpr").cast(pl.Float32, strict=False),
+        pl.col("cn_cpicore").cast(pl.Float32, strict=False),
+    ).sort(pl.col("date"))
+
+    cpi_mom = (
+        data.select(pl.all().exclude("date")).to_numpy()
+        - data.select(pl.all().exclude("date")).shift(1).to_numpy()
+    ) / data.select(pl.all().exclude("date")).shift(1).to_numpy()
+
+    cpi_mom = pl.from_numpy(
+        cpi_mom, schema=data.select(pl.all().exclude("date")).schema
+    )
+    cpi_mom = pl.concat([data.select(pl.col("date")), cpi_mom], how="horizontal")
+    cpi_mom.write_database(table, str(engine.url))
 
 
 if __name__ == "__main__":
-    # write_sales_growth_data(engine)
-    write_lipperid_return_data(engine)
+    write_price_data(engine)
