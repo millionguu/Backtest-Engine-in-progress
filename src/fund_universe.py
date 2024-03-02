@@ -1,8 +1,8 @@
-# source: https://www.cnbc.com/sector-etfs/
 from src.security_symbol import SecurityTicker, SecurityLipper
 import polars as pl
 
 
+# source: https://www.cnbc.com/sector-etfs/
 sector_etf_ticker_mapping = {
     "Consumer Discretionary": "XLY",
     "Energy": "XLE",
@@ -17,9 +17,23 @@ sector_etf_ticker_mapping = {
     "Financials": "XLF",
 }
 
-sector_etf_lipper_mapping = {
+invesco_sp500_sector_etf = {
+    "Consumer Discretionary": "40111945",
+    "Energy": "40205516",  # not from invesco
+    "Real Estate": "40212980",
+    "Materials": "40111951",
+    "Utilities": "40111953",
+    "Information Technology": "40111952",
+    "Communication Services": "40225234",
+    "Health Care": "40111949",
+    "Industrials": "40111950",
+    "Consumer Staples": "40111946",
+    "Financials": "40111948",
+}
+
+blackrock_sector_etf = {
     "Consumer Discretionary": "40056100",
-    "Energy": "40197404",  # not from black rock
+    "Energy": "40205516",  # not from blackrock
     "Real Estate": "40056109",
     "Materials": "40056098",
     "Utilities": "40056106",
@@ -33,14 +47,4 @@ sector_etf_lipper_mapping = {
 
 
 SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in sector_etf_ticker_mapping.items()]
-SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in sector_etf_lipper_mapping.items()]
-
-
-if __name__ == "__main__":
-    data = pl.read_excel("data/US Sector ETF Info")
-
-    data.filter(pl.col("Technical Indicator\nBenchmark").str.starts_with("S&P")).filter(
-        pl.col("Fund Management\nCompany Name").str.starts_with("BlackRock")
-    ).select(pl.col("Name"), pl.col("Schemes"), pl.col("Launch Date")).sort(
-        pl.col("Schemes")
-    )
+SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]
