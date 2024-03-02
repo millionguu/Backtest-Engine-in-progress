@@ -57,7 +57,7 @@ def write_sales_growth_data(engine):
         data = data.melt(
             id_vars=["sedol7", "company"], var_name="date", value_name="growth"
         )
-        data["date"] = pd.to_datetime(data["date"]).dt.date
+        data = data["date"] = pd.to_datetime(data["date"]).dt.date
         data.to_sql(table, con=engine, chunksize=1000, index=False)
 
 
@@ -95,7 +95,7 @@ def write_lipperid_return_data(engine):
 def write_sedol_ticker_mapping(engine):
     table = "sedol_ticker_mapping"
     data = pl.read_csv("data/SEDOL Tickers.csv")
-    data.with_columns(
+    data = data.with_columns(
         pl.coalesce(pl.col("Ticker"), pl.col("Previous ticker")).alias("ticker")
     ).select(
         pl.col("SEDOL7").alias("sedol7"), pl.col("ticker"), pl.col("Name").alias("name")
@@ -122,7 +122,7 @@ def write_eps_data(engine):
         data = data.melt(
             id_vars=["sedol7", "company"], variable_name="date", value_name="eps"
         )
-        data.with_columns(
+        data = data.with_columns(
             pl.col("date").str.to_date("%Y%m%d"), pl.col("eps").cast(pl.Float32)
         )
         data.write_database(table, str(engine.url))
@@ -139,7 +139,7 @@ def write_price_data(engine):
     data = data.melt(
         id_vars=["sedol7", "company"], variable_name="date", value_name="price"
     )
-    data.with_columns(
+    data = data.with_columns(
         pl.col("date").str.to_date("%Y%m%d"),
         pl.col("price").cast(pl.Float32, strict=False),
     )
@@ -182,4 +182,4 @@ def write_cpi_data(engine):
 
 
 if __name__ == "__main__":
-    write_price_data(engine)
+    write_sedol_ticker_mapping(engine)

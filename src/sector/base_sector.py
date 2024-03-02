@@ -10,6 +10,11 @@ class BaseSector(ABC):
         super().__init__()
 
     def get_sector_construction(self):
+        """
+        schema: "sedol7", "date", "sector", "weight"
+
+        weight is adjusted based on the date and sector
+        """
         sector_info = pl.read_database(
             "select * from msci_usa_sector_info", engine.connect()
         ).select(["sedol7", "date", "sector"])

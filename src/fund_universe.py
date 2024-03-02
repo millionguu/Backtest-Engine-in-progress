@@ -30,20 +30,23 @@ invesco_sp500_sector_etf = {
     "Financials": "40111948",
 }
 
-blackrock_sector_etf = {
-    "Consumer Discretionary": "40056100",
-    "Energy": "40205516",  # not from blackrock
-    "Real Estate": "40056109",
-    "Materials": "40056098",
-    "Utilities": "40056106",
-    "Information Technology": "40056080",
-    "Communication Services": "40056094",
-    "Health Care": "40056104",
-    "Industrials": "40056105",
-    "Consumer Staples": "40056101",
-    "Financials": "40056093",
+invesco_sp500_ticker_sector_etf = {
+    "Consumer Discretionary": "RSPD",
+    "Energy": "ENFR",  # not from invesco
+    "Real Estate": "RSPR",
+    "Materials": "RSPM",
+    "Utilities": "RSPU",
+    "Information Technology": "RSPT",
+    "Communication Services": "RSPC",
+    "Health Care": "RSPH",
+    "Industrials": "RSPN",
+    "Consumer Staples": "RSPS",
+    "Financials": "RSPF",
 }
 
 
-SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
+# SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
+SECTOR_ETF_TICKER = [
+    SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
+]
 SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]
