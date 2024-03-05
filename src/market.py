@@ -1,4 +1,5 @@
 import datetime
+from pathlib import Path
 import time
 import numpy as np
 import pandas as pd
@@ -11,9 +12,9 @@ from src.security_symbol import SecurityTicker, SecurityLipper
 
 
 class Market:
-    def __init__(self, securities, start_date: str, end_date: str):
-        self.start_date = start_date.strftime("%Y-%m-%d")
-        self.end_date = end_date.strftime("%Y-%m-%d")
+    def __init__(self, securities, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
         self.securities = securities
         self.data = dict()
         if isinstance(securities[0], SecurityTicker):
@@ -24,20 +25,23 @@ class Market:
     def load_ticker_return_data(self):
         for security in self.securities:
             table = str(security)
-            if not sqlalchemy.inspect(engine).has_table(str(table)):
+            path = Path("parquet/ticker/" + str(table))
+            if not path.exists():
                 data = self.retrive_data_from_yfinance(security)
-                data.to_sql(table, con=engine, chunksize=1000, index=False)
+                data = pl.from_pandas(data)
+                data.write_parquet(path)
                 time.sleep(1)
-            self.data[security] = pl.read_database(
-                query=f"select * from {table} where date >= :start_date and date <= :end_date",
-                connection=engine,
-                execute_options={
-                    "parameters": {
-                        "start_date": self.start_date,
-                        "end_date": self.end_date,
-                    }
-                },
+            self.data[security] = (
+                pl.scan_parquet(path)
+                .filter(pl.col("date") >= self.start_date)
+                .filter(pl.col("date") <= self.end_date)
+                .collect()
             )
+            earliest_date = self.data[security].get_column("date").item(0)
+            if earliest_date < self.start_date:
+                print(
+                    f"note that {security} doesn't have enough history data, earliest date: {earliest_date}"
+                )
 
     def load_lipper_return_data(self):
         # TODO:maybe filter on lipper_id
@@ -67,8 +71,6 @@ class Market:
         return data
 
     def query_return(self, security, date):
-        if isinstance(date, type(datetime.date.today())):
-            date = date.strftime("%Y-%m-%d")
         if isinstance(security, SecurityTicker):
             return self.query_ticker_return(security, date)
         elif isinstance(security, SecurityLipper):
@@ -79,7 +81,7 @@ class Market:
         if len(res) == 1:
             return res.get_column("return").item(0)
         else:
-            print(f"not found return value for {security} at {date}.")
+            # print(f"not found return value for {security} at {date}.")
             return 0
 
     def query_lipper_return(self, security, date):

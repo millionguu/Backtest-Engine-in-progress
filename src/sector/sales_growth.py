@@ -35,7 +35,8 @@ class SalesGrowthSector(BaseSector):
         return res
 
     def get_signal_df(self, date):
-        prev_month, cur_month = self.get_last_month_bound(date)
+        # TODO: adjust based on annocement date
+        prev_month, cur_month = self.get_last_n_month_bound(date, 1)
         bound = f"where date between '{prev_month}' and '{cur_month}'"
         signal_df = pl.read_database(
             f"select * from {self.table} {bound}", engine.connect()
@@ -72,7 +73,7 @@ class SalesGrowthSector(BaseSector):
         return sector_signal_df
 
     def sort_sector_using_z_score(self, total_df, observe_date):
-        prev_month, cur_month = self.get_last_month_bound(observe_date)
+        prev_month, cur_month = self.get_last_n_month_bound(observe_date, 1)
         cur_signal = total_df.filter(pl.col("date") > prev_month).clone()
         assert len(cur_month) < 15
 

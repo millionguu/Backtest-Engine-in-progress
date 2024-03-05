@@ -104,36 +104,32 @@ def write_sedol_ticker_mapping(engine):
     data.write_database(table, str(engine.url))
 
 
-def write_eps_data(engine):
+def write_eps_data():
     file_names = [
         "Reported EPS Qtr.xlsx",
         "Reported EPS Ann.xlsx",
     ]
     tables = [
-        "msci_usa_eps_quarterly",
-        "msci_usa_eps_annually",
+        "us_eps_quarterly",
+        "us_eps_annually",
     ]
-    with engine.connect() as conn, conn.begin():
-        for table in tables:
-            conn.execute(text(f"drop table if exists {table};"))
     for file_name, table in zip(file_names, tables):
         data = pl.read_excel(f"data/{file_name}")
-        data = data.rename({"": "company", "SEDOL7": "sedol7"})
+        data = data.rename({"Name": "company", "SEDOL7": "sedol7"})
         data = data.melt(
             id_vars=["sedol7", "company"], variable_name="date", value_name="eps"
         )
         data = data.with_columns(
             pl.col("date").str.to_date("%Y%m%d"), pl.col("eps").cast(pl.Float32)
         )
-        data.write_database(table, str(engine.url))
+        # data.write_database(table, str(engine.url))
+        data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
-def write_price_data(engine):
+def write_price_data():
     file_name = "Price_MSCI USA_20001231-20231130.xlsx"
-    table = "msci_usa_price_daily"
+    table = "us_price_daily"
 
-    with engine.connect() as conn, conn.begin():
-        conn.execute(text(f"drop table if exists {table};"))
     data = pl.read_excel(f"data/{file_name}")
     data = data.rename({"": "company", "SEDOL7": "sedol7"})
     data = data.melt(
@@ -143,10 +139,10 @@ def write_price_data(engine):
         pl.col("date").str.to_date("%Y%m%d"),
         pl.col("price").cast(pl.Float32, strict=False),
     )
-    data.write_database(table, str(engine.url))
+    data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
-def write_cpi_data(engine):
+def write_cpi_data():
     table = "us_cpi_mom"
     data = pl.read_csv("data/CPI Data.csv")
     data = data.rename(
@@ -181,5 +177,21 @@ def write_cpi_data(engine):
     cpi_mom.write_database(table, str(engine.url))
 
 
+def write_income_report_date():
+    table = "us_security_income_report_announcement_date"
+    data = pl.read_excel("data/Income Report Dates.xlsx")
+    data = data.rename({"Name": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"],
+        variable_name="report_date",
+        value_name="announcement_date",
+    )
+    data = data.with_columns(
+        pl.col("report_date").str.to_date("%Y%m%d"),
+        pl.col("announcement_date").str.to_date("%Y%m%d"),
+    )
+    data.write_parquet(f"parquet/cape/{table}.parquet")
+
+
 if __name__ == "__main__":
-    write_sedol_ticker_mapping(engine)
+    write_price_data()
