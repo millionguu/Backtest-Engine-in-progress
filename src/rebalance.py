@@ -1,6 +1,3 @@
-import datetime
-
-
 class Rebalance:
     def __init__(
         self, period, portfolio, factor, blacklist, disable_rebalance=False
@@ -15,7 +12,6 @@ class Rebalance:
         if self.disable_rebalance:
             return
         cur_date = self.portfolio.date_df.item(iter_index, 0)
-        cur_date = datetime.date.fromisoformat(cur_date)
         position = self.factor.get_position(cur_date)
 
         residual = 0

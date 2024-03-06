@@ -60,8 +60,7 @@ class Benchmark:
         df = market.data[self.benchmark]
         df = (
             df.filter(
-                (pl.col("date") >= self.start_date.strftime("%Y-%m-%d"))
-                & (pl.col("date") <= self.end_date.strftime("%Y-%m-%d"))
+                (pl.col("date") >= self.start_date) & (pl.col("date") <= self.end_date)
             )
             .rename({"adj close": "value"})
             .select("value")

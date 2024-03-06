@@ -161,3 +161,6 @@ cython_debug/
 /data/
 /test.ipynb
 /test.sql
+*.DS_Store
+/.vscode/
+data.db
