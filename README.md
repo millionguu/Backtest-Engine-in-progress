@@ -1,24 +1,14 @@
 # Backtest-Engine-in-progress
 
-backtest engine
+backtest engine designed to run fund selection / sector rotation
 
 ## modules of the system
 
-- data loader: readin fund performance data from file, do the cleanup and store
-  unified format data in the database
-- market: readin data from database, response with query
-- factor: readin various fund data, output the selected fund and its weight
-- strategy: readin portfoilio, output buy/sell decision
-- rebalance: call factor periodically to rebalance the portfoilio
-- portfolio: a pandas dataframe, hold various fund in different weight
-- backtest: readin portfolio and strategy, modify the portfolio in place
-  according to market
-- analysis: readin portfolio, draw graph and output the metrics
-
-## tables
-
-- us_market_open_date
-- all the tickers available in yahoo finance
-- top_holdings_{etf_name}
-- msci_usa_sector_{info|weight}
-- msci_usa_sales_growth_{fy1|ttm|ntm}
+- data_loader: clean the data source and store the result in the parquet format
+- factor: sort the selected fund based on some signals
+- market: response query with daily return value
+- strategy: primarily stop loss and stop gain
+- portfolio: data structure that hold funds data for a period of time
+- rebalance: call factor periodically to change the portfoilio holdings
+- backtest:  iteratively call methods to update portfolio
+- analysis: draw result graph and output the metrics

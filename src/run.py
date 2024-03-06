@@ -10,14 +10,14 @@ from src.factor.cape import CapeFactor
 from src.factor.sales_growth import SalesGrowthFactor
 from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
-start_date = date.fromisoformat("2013-01-01")
+start_date = date.fromisoformat("2013-01-04")
 end_date = date.fromisoformat("2014-06-30")
 security_universe = SECTOR_ETF_LIPPER
 
 market = Market(security_universe, start_date, end_date)
 
 ### Long factor
-long_factor = SalesGrowthFactor(security_universe, start_date, end_date, "long")
+long_factor = CapeFactor(security_universe, start_date, end_date, "long")
 long_portfolio = Portfolio(100.0, start_date, end_date)
 long_factor.set_portfolio_at_start(long_portfolio)
 
@@ -33,7 +33,7 @@ backtest.run()
 
 
 ### Short factor
-short_factor = SalesGrowthFactor(security_universe, start_date, end_date, "short")
+short_factor = CapeFactor(security_universe, start_date, end_date, "short")
 short_portfolio = Portfolio(100.0, start_date, end_date)
 short_factor.set_portfolio_at_start(short_portfolio)
 
