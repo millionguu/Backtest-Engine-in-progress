@@ -2,12 +2,10 @@ from collections import defaultdict
 import numpy as np
 import polars as pl
 
-from src.database import engine
-
 
 class Portfolio:
     def __init__(self, initial_cash, start_date, end_date):
-        self.date_df = self.get_market_open_date(engine, start_date, end_date)
+        self.date_df = self.get_market_open_date(start_date, end_date)
         self.start_date = self.date_df.item(0, 0)
         self.end_date = self.date_df.item(-1, 0)
         self.iter_index = 0
@@ -25,14 +23,12 @@ class Portfolio:
             .to_dicts()
         )
 
-    def get_market_open_date(self, engine, start_date, end_date):
-        df = pl.read_database(
-            query="select date from us_market_open_date \
-                  where date >= :start_date and date <= :end_date",
-            connection=engine,
-            execute_options={
-                "parameters": {"start_date": start_date, "end_date": end_date}
-            },
+    def get_market_open_date(self, start_date, end_date):
+        df = (
+            pl.scan_parquet("parquet/base/us_market_open_date.parquet")
+            .filter(pl.col("date") >= start_date)
+            .filter(pl.col("date") <= end_date)
+            .collect()
         )
         return df
 

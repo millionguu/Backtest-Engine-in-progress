@@ -1,7 +1,6 @@
 from dateutil.relativedelta import relativedelta
 import polars as pl
 
-from src.database import engine
 from src.sector.base_sector import BaseSector
 
 
@@ -10,7 +9,7 @@ class SalesGrowthSector(BaseSector):
         # hyper parameter: generate z-score using data in the last n months
         self.month_range = 12
         # category of sales growth, could be {fy1|ttm|ntm}
-        self.table = f"msci_usa_sales_growth_{category}"
+        self.table = f"us_sales_growth_{category}.parquet"
         self.sector_df = self.get_sector_construction()
         self.sector_signal_cache = {}
 
@@ -37,9 +36,11 @@ class SalesGrowthSector(BaseSector):
     def get_signal_df(self, date):
         # TODO: adjust based on annocement date
         prev_month, cur_month = self.get_last_n_month_bound(date, 1)
-        bound = f"where date between '{prev_month}' and '{cur_month}'"
-        signal_df = pl.read_database(
-            f"select * from {self.table} {bound}", engine.connect()
+        signal_df = (
+            pl.scan_parquet(f"parquet/sales_growth/{self.table}")
+            .filter(pl.col("date").dt.strftime("%Y-%m-%d") >= prev_month)
+            .filter(pl.col("date").dt.strftime("%Y-%m-%d") <= cur_month)
+            .collect()
         )
         signal_df = signal_df.rename({"growth": "signal"})
         return signal_df
@@ -74,7 +75,9 @@ class SalesGrowthSector(BaseSector):
 
     def sort_sector_using_z_score(self, total_df, observe_date):
         prev_month, cur_month = self.get_last_n_month_bound(observe_date, 1)
-        cur_signal = total_df.filter(pl.col("date") > prev_month).clone()
+        cur_signal = total_df.filter(
+            pl.col("date").dt.strftime("%Y-%m-%d") > prev_month
+        ).clone()
         assert len(cur_month) < 15
 
         total_df = total_df.group_by(["sector"]).agg(

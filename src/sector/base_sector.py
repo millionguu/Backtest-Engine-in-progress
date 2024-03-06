@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from dateutil.relativedelta import relativedelta
 import polars as pl
 
-from src.database import engine
-
 
 class BaseSector(ABC):
     def __init__(self) -> None:
@@ -15,14 +13,14 @@ class BaseSector(ABC):
 
         weight is adjusted based on the date and sector
         """
-        sector_info = pl.read_database(
-            "select * from msci_usa_sector_info", engine.connect()
-        ).select(["sedol7", "date", "sector"])
+        sector_info = pl.read_parquet("parquet/base/us_sector_info.parquet").select(
+            ["sedol7", "date", "sector"]
+        )
 
         # originally, the weight is based on the all sectors
-        sector_weight = pl.read_database(
-            "select * from msci_usa_sector_weight", engine.connect()
-        ).select(["sedol7", "date", "weight"])
+        sector_weight = pl.read_parquet("parquet/base/us_sector_weight.parquet").select(
+            ["sedol7", "date", "weight"]
+        )
 
         merge = sector_info.join(
             sector_weight, on=["sedol7", "date"], how="inner"

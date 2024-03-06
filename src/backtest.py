@@ -1,4 +1,3 @@
-from datetime import date
 from src.strategy import OrderType, StopGainAndLoss
 
 
@@ -25,9 +24,7 @@ class BackTest:
         # update daily return first
         # security needs to have value in yesterday
         for security in self.portfolio.hold_securities(self.iter_index - 1):
-            daily_return = self.market.query_return(
-                security, date.fromisoformat(self.cur_date)
-            )
+            daily_return = self.market.query_return(security, self.cur_date)
             self.portfolio.update_security_value(
                 security, self.iter_index, daily_return
             )

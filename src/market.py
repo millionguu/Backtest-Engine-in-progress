@@ -5,7 +5,6 @@ import pandas as pd
 import polars as pl
 import yfinance
 
-from src.database import engine
 from src.security_symbol import SecurityTicker, SecurityLipper
 
 

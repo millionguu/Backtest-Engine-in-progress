@@ -1,74 +1,72 @@
 from datetime import datetime
-import pandas as pd
 import polars as pl
-from sqlalchemy import text
 import yfinance
-from src.database import engine
 
 
-def write_sector_weight(engine):
+def write_sector_weight():
     filename = "Weight_MSCI USA_20001229_20231130.xlsx"
-    table = "msci_usa_sector_weight"
-    with engine.connect() as conn, conn.begin():
-        conn.execute(text(f"drop table if exists {table};"))
-    data = pd.read_excel("data/" + filename)
-    data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
+    table = "us_sector_weight"
+    data = pl.read_excel("data/" + filename)
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
     data = data.melt(
-        id_vars=["sedol7", "company"], var_name="date", value_name="weight"
+        id_vars=["sedol7", "company"], variable_name="date", value_name="weight"
     )
-    data["date"] = pd.to_datetime(data["date"].apply(lambda x: str(x))).dt.date
-    data.to_sql(table, con=engine, chunksize=1000, index=False)
+    data = data.with_columns(
+        pl.col("date").str.split(".").list.get(0).str.to_date("%Y%m%d"),
+        pl.col("weight").cast(pl.Float32),
+    )
+    data = data.sort("sedol7", "date")
+    data.write_parquet(f"parquet/base/{table}.parquet")
 
 
-def write_sector_info(engine):
+def write_sector_info():
     filename = "GICS_MSCI USA_20001229_20231130.xlsx"
-    table = "msci_usa_sector_info"
-    with engine.connect() as conn, conn.begin():
-        conn.execute(text(f"drop table if exists {table};"))
-    data = pd.read_excel("data/" + filename)
-    data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
+    table = "us_sector_info"
+    data = pl.read_excel("data/" + filename)
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
     data = data.melt(
-        id_vars=["sedol7", "company"], var_name="date", value_name="sector"
+        id_vars=["sedol7", "company"], variable_name="date", value_name="sector"
     )
-    data["date"] = pd.to_datetime(data["date"]).dt.date
-    data.to_sql(table, con=engine, chunksize=1000, index=False)
+    data = data.with_columns(
+        pl.col("date").str.split(".").list.get(0).str.to_date("%Y%m%d"),
+    )
+    data = data.sort("sedol7", "date")
+    data.write_parquet(f"parquet/base/{table}.parquet")
 
 
-def write_sales_growth_data(engine):
+def write_sales_growth_data():
     file_names = [
         "Sales Gth FY1_MSCI USA_20001231-20231130.xlsx",
         "Sales Gth NTM_MSCI USA_20001231-20231130.xlsx",
         "Sales Gth TTM_MSCI USA_20001231-20231130.xlsx",
     ]
     tables = [
-        "msci_usa_sales_growth_fy1",
-        "msci_usa_sales_growth_ntm",
-        "msci_usa_sales_growth_ttm",
+        "us_sales_growth_fy1",
+        "us_sales_growth_ntm",
+        "us_sales_growth_ttm",
     ]
-    with engine.connect() as conn, conn.begin():
-        for table in tables:
-            conn.execute(text(f"drop table if exists {table};"))
     for file_name, table in zip(file_names, tables):
-        data = pd.read_excel(f"data/{file_name}", index_col=False)
-        data = data.rename(columns={"Unnamed: 1": "company", "SEDOL7": "sedol7"})
-        convert_columns = [c for c in data.columns if c not in ["sedol7", "company"]]
-        for c in convert_columns:
-            data[c] = pd.to_numeric(data[c], errors="coerce")
+        data = pl.read_excel(f"data/{file_name}")
+        data = data.rename({"": "company", "SEDOL7": "sedol7"})
         data = data.melt(
-            id_vars=["sedol7", "company"], var_name="date", value_name="growth"
+            id_vars=["sedol7", "company"], variable_name="date", value_name="growth"
         )
-        data = data["date"] = pd.to_datetime(data["date"]).dt.date
-        data.to_sql(table, con=engine, chunksize=1000, index=False)
+        data = data.with_columns(
+            pl.col("date").str.split(".").list.get(0).str.to_date("%Y%m%d"),
+            pl.col("growth").cast(pl.Float32, strict=False),
+        )
+        data.write_parquet(f"parquet/sales_growth/{table}.parquet")
 
 
-def write_market_open_date(engine):
+def write_market_open_date():
     table = "us_market_open_date"
-    with engine.connect() as conn, conn.begin():
-        conn.execute(text(f"drop table if exists {table};"))
     today = datetime.today().strftime("%Y-%m-%d")
-    data = yfinance.download("^DJI", start="2000-01-01", end=today)
-    data["date"] = pd.to_datetime(data.index).date
-    data["date"].to_sql(table, con=engine, chunksize=1000, index=False)
+    data = yfinance.download("^DJI", start="2000-01-01", end=today).reset_index()
+    data = pl.from_pandas(data)
+    data = data.with_columns(pl.col("Date").dt.date().alias("date")).select(
+        pl.col("date")
+    )
+    data.write_parquet(f"parquet/base/{table}.parquet")
 
 
 def write_us_fund_return_data():
@@ -104,16 +102,15 @@ def write_us_fund_return_data():
     data.write_parquet(f"parquet/fund_return/{table}.parquet")
 
 
-def write_sedol_ticker_mapping(engine):
-    table = "sedol_ticker_mapping"
+def write_sedol_ticker_mapping():
+    table = "us_sedol_ticker_mapping"
     data = pl.read_csv("data/SEDOL Tickers.csv")
     data = data.with_columns(
         pl.coalesce(pl.col("Ticker"), pl.col("Previous ticker")).alias("ticker")
     ).select(
         pl.col("SEDOL7").alias("sedol7"), pl.col("ticker"), pl.col("Name").alias("name")
     )
-
-    data.write_database(table, str(engine.url))
+    data.write_parquet(f"parquet/base/{table}.parquet")
 
 
 def write_eps_data():
@@ -217,4 +214,4 @@ def write_income_report_date():
 
 
 if __name__ == "__main__":
-    write_us_fund_return_data()
+    write_sedol_ticker_mapping()
