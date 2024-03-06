@@ -12,6 +12,9 @@ class CapeSector(BaseSector):
         self.eps_table_backup = "parquet/cape/us_security_eps_annually.parquet"
         self.price_table = "parquet/cape/us_security_price_daily.parquet"
         self.cpi_table = "parquet/cape/us_cpi.parquet"
+        self.report_announcement_table = (
+            "parquet/cape/us_security_income_report_announcement_date.parquet"
+        )
         self.sector_df = self.get_sector_construction()
         self.sector_signal_cache = {}
 
@@ -34,7 +37,7 @@ class CapeSector(BaseSector):
             total_df_list.append(sector_signal_df)
         total_df = pl.concat(total_df_list)
         sector_list = self.sort_sector_using_z_score(total_df, observe_date)
-        # less PE is better
+        # less PE is better, thus we reverse the order
         sector_list = list(reversed(sector_list))
         assert len(sector_list) > 0
         return sector_list
@@ -44,30 +47,24 @@ class CapeSector(BaseSector):
         aggregate history eps data and calulate security PE
         """
 
-        income_announcement_date = None
-
         prev_month, cur_month = self.get_last_n_month_bound(cur_date=date, n=10 * 12)
-        # TODO: adjust eps based on CPI
+        # TODO: adjust history eps based on CPI
         # adjust weight if missing cpi data
         eps_df = (
-            pl.scan_parquet(f"parquet/cape/{self.eps_table}.parquet")
+            pl.scan_parquet(self.eps_table)
             .filter((pl.col("date").dt.strftime("%Y-%m-%d") >= prev_month))
             .filter((pl.col("date").dt.strftime("%Y-%m-%d") <= cur_month))
             .filter(pl.col("eps").is_not_null())
             .collect()
         )
 
-        eps_df = pl.read_database(
-            f"select * from {self.eps_table}  \
-            where date between '{prev_month}' and '{cur_month}' \
-            and eps is not null",
-            engine.connect(),
+        price_df = (
+            pl.scan_parquet(self.price_table)
+            .filter((pl.col("date").dt.strftime("%Y-%m-%d") >= prev_month))
+            .filter((pl.col("date").dt.strftime("%Y-%m-%d") <= cur_month))
+            .collect()
         )
-        price_df = pl.read_database(
-            f"select * from msci_usa_price_daily \
-             where date between '{prev_month}' and '{cur_month}' ",
-            engine.connect(),
-        )
+
         signal_df = eps_df.join(
             price_df,
             how="inner",
@@ -79,3 +76,6 @@ class CapeSector(BaseSector):
         )
 
         return signal_df
+
+    def get_report_announcement_date(self):
+        announcement_df = pl.read_parquet(self.report_announcement_table)
