@@ -45,7 +45,7 @@ class BaseSector(ABC):
         return (prev_month, cur_month)
 
     @abstractmethod
-    def get_signal_df(self, date):
+    def get_security_signal(self, date):
         """
         signal on the security level
 
@@ -107,15 +107,13 @@ class BaseSector(ABC):
             (pl.col("weighted_signal").mean().alias("mean")),
         )
 
-        merge = (
-            cur_signal.join(total_df, on="sector", how="inner")
-            .with_columns(
-                ((pl.col("weighted_signal") - pl.col("mean")) / pl.col("std")).alias(
-                    "z-score"
-                )
+        merge = cur_signal.join(total_df, on="sector", how="inner").with_columns(
+            ((pl.col("weighted_signal") - pl.col("mean")) / pl.col("std")).alias(
+                "z-score"
             )
-            .sort("z-score", descending=True)
         )
         # print(merge)
-        ordered_sector = merge.get_column("sector").to_list()
+        ordered_sector = (
+            merge.sort("z-score", descending=True).get_column("sector").to_list()
+        )
         return ordered_sector

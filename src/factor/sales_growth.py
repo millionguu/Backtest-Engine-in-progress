@@ -11,15 +11,15 @@ class SalesGrowthFactor(BaseFactor):
         for security, weight in position:
             portfolio.add_security_weight(security, weight, 0)
 
-    def get_security_list(self, date):
+    def get_fund_list(self, date):
         """
         1. get the sorted sector based on the signal
         2. sort the fund by sector order
         """
         sector_list = SalesGrowthSector("ntm").get_sector_list(date)
-        etf_list = []
+        fund_list = []
         for sector in sector_list:
             for security in self.security_universe:
                 if security.sector == sector:
-                    etf_list.append(security)
-        return etf_list
+                    fund_list.append(security)
+        return fund_list

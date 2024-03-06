@@ -25,7 +25,7 @@ class SalesGrowthSector(BaseSector):
             if date in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache["date"]
             else:
-                signal_df = self.get_signal_df(date)
+                signal_df = self.get_security_signal(date)
                 sector_signal_df = self.get_sector_signal(self.sector_df, signal_df)
                 self.sector_signal_cache["date"] = sector_signal_df
             total_df_list.append(sector_signal_df)
@@ -33,7 +33,7 @@ class SalesGrowthSector(BaseSector):
         res = self.sort_sector_using_z_score(total_df, observe_date)
         return res
 
-    def get_signal_df(self, date):
+    def get_security_signal(self, date):
         # TODO: adjust based on annocement date
         prev_month, cur_month = self.get_last_n_month_bound(date, 1)
         signal_df = (

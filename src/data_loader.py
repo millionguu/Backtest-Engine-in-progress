@@ -118,10 +118,7 @@ def write_eps_data():
         "Reported EPS Qtr.xlsx",
         "Reported EPS Ann.xlsx",
     ]
-    tables = [
-        "us_eps_quarterly",
-        "us_eps_annually",
-    ]
+    tables = ["us_security_eps_quarterly", "us_security_eps_annually"]
     for file_name, table in zip(file_names, tables):
         data = pl.read_excel(f"data/{file_name}")
         data = data.rename({"Name": "company", "SEDOL7": "sedol7"})
@@ -136,7 +133,7 @@ def write_eps_data():
 
 def write_cape_us_price_data():
     file_name = "Price_MSCI USA_20001231-20231130.xlsx"
-    table = "us_price_daily"
+    table = "us_security_price_daily"
 
     data = pl.read_excel(f"data/{file_name}")
     data = data.rename({"": "company", "SEDOL7": "sedol7"})
@@ -214,4 +211,4 @@ def write_income_report_date():
 
 
 if __name__ == "__main__":
-    write_sedol_ticker_mapping()
+    write_cape_us_price_data()
