@@ -71,25 +71,37 @@ def write_market_open_date(engine):
     data["date"].to_sql(table, con=engine, chunksize=1000, index=False)
 
 
-def write_lipperid_return_data(engine):
-    table = "us_sector_fund_return_lipperid"
-    data = pl.read_excel("data/US Sector Fund and Benchmark Return TS.xlsx")
-    data = (
-        data.with_columns(
-            pl.col("StartDate").str.to_date("%m-%d-%y"),
-            pl.col("EndDate").str.to_date("%m-%d-%y"),
+def write_us_fund_return_data():
+    table = "us_fund_daily_return_lipperid"
+    file_names = [
+        "US Fund Return_2000-2005.xlsx",
+        "US Fund Return_2005-2010.xlsx",
+        "US Fund Return_2010-2015.xlsx",
+        "US Fund Return_2015-2020.xlsx",
+        "US Fund Return_2020-2023.xlsx",
+    ]
+    data = []
+    for file_name in file_names:
+        part = pl.read_excel(f"data/{file_name}")
+        part = (
+            part.with_columns(
+                pl.col("StartDate").str.to_date("%m-%d-%y"),
+                pl.col("EndDate").str.to_date("%m-%d-%y"),
+            )
+            .rename(
+                {
+                    "LipperID": "lipper_id",
+                    "StartDate": "start_date",
+                    "EndDate": "end_date",
+                    "Value": "return",
+                }
+            )
+            .select(["lipper_id", "start_date", "end_date", "return"])
         )
-        .rename(
-            {
-                "LipperID": "lipper_id",
-                "StartDate": "start_date",
-                "EndDate": "end_date",
-                "Value": "return",
-            }
-        )
-        .select(["lipper_id", "start_date", "end_date", "return"])
-    )
-    data.write_database(table, str(engine.url))
+        data.append(part)
+    data = pl.concat(data, how="vertical")
+    data = data.sort(["lipper_id", "end_date"])
+    data.write_parquet(f"parquet/fund_return/{table}.parquet")
 
 
 def write_sedol_ticker_mapping(engine):
@@ -122,11 +134,10 @@ def write_eps_data():
         data = data.with_columns(
             pl.col("date").str.to_date("%Y%m%d"), pl.col("eps").cast(pl.Float32)
         )
-        # data.write_database(table, str(engine.url))
         data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
-def write_price_data():
+def write_cape_us_price_data():
     file_name = "Price_MSCI USA_20001231-20231130.xlsx"
     table = "us_price_daily"
 
@@ -135,34 +146,45 @@ def write_price_data():
     data = data.melt(
         id_vars=["sedol7", "company"], variable_name="date", value_name="price"
     )
-    data = data.with_columns(
-        pl.col("date").str.to_date("%Y%m%d"),
-        pl.col("price").cast(pl.Float32, strict=False),
+    data = (
+        data.with_columns(
+            pl.col("date").str.to_date("%Y%m%d"),
+            pl.col("price").cast(pl.Float32, strict=False),
+        )
+        .select("sedol7", "date", "price")
+        .sort(
+            [
+                "sedol7",
+                "date",
+            ]
+        )
     )
     data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
 def write_cpi_data():
-    table = "us_cpi_mom"
+    table = "us_cpi"
     data = pl.read_csv("data/CPI Data.csv")
     data = data.rename(
         {
             "Mnemonic": "date",
-            "US.CPIALL": "us_cpiall",
-            "US.CPICORE": "us_cpicore",
-            "BLSSUUR0000SA0": "blssuur",
-            "CNPR7096764": "cnpr",
-            "CN.CPICORE": "cn_cpicore",
+            "US.CPIALL": "us_cpi_all",
+            "US.CPICORE": "us_cpi_core",
+            "BLSSUUR0000SA0": "us_chained_cpi",
+            "CNPR7096764": "cn_cpi",
+            "CN.CPICORE": "cn_cpi_core",
         }
-    ).select("date", "us_cpiall", "us_cpicore", "blssuur", "cnpr", "cn_cpicore")
+    ).select(
+        "date", "us_cpi_all", "us_cpi_core", "us_chained_cpi", "cn_cpi", "cn_cpi_core"
+    )
 
     data = data.with_columns(
         pl.col("date").str.to_date("%Y/%m/%d"),
-        pl.col("us_cpiall").cast(pl.Float32, strict=False),
-        pl.col("us_cpicore").cast(pl.Float32, strict=False),
-        pl.col("blssuur").cast(pl.Float32, strict=False),
-        pl.col("cnpr").cast(pl.Float32, strict=False),
-        pl.col("cn_cpicore").cast(pl.Float32, strict=False),
+        pl.col("us_cpi_all").cast(pl.Float32, strict=False),
+        pl.col("us_cpi_core").cast(pl.Float32, strict=False),
+        pl.col("us_chained_cpi").cast(pl.Float32, strict=False),
+        pl.col("cn_cpi").cast(pl.Float32, strict=False),
+        pl.col("cn_cpi_core").cast(pl.Float32, strict=False),
     ).sort(pl.col("date"))
 
     cpi_mom = (
@@ -174,7 +196,8 @@ def write_cpi_data():
         cpi_mom, schema=data.select(pl.all().exclude("date")).schema
     )
     cpi_mom = pl.concat([data.select(pl.col("date")), cpi_mom], how="horizontal")
-    cpi_mom.write_database(table, str(engine.url))
+    # cpi_mom.write_database(table, str(engine.url))
+    cpi_mom.write_parquet(f"parquet/cape/{table}.parquet")
 
 
 def write_income_report_date():
@@ -194,4 +217,4 @@ def write_income_report_date():
 
 
 if __name__ == "__main__":
-    write_price_data()
+    write_us_fund_return_data()
