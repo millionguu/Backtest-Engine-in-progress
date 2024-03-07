@@ -38,11 +38,19 @@ class SalesGrowthSector(BaseSector):
 
     def get_security_signal(self, date):
         # TODO: adjust based on annocement date
-        prev_month, cur_month = self.get_last_n_month_bound(date, 1)
+        one_month_ago = date - timedelta(days=60)
+        lastest_date = (
+            pl.scan_parquet(f"parquet/sales_growth/{self.table}")
+            .filter(pl.col("date") >= one_month_ago)
+            .filter(pl.col("date") <= date)
+            .select(pl.col("date").sort())
+            .collect()
+            .get_column("date")
+            .item(-1)
+        )
         signal_df = (
             pl.scan_parquet(f"parquet/sales_growth/{self.table}")
-            .filter(pl.col("date").dt.strftime("%Y-%m-%d") >= prev_month)
-            .filter(pl.col("date").dt.strftime("%Y-%m-%d") <= cur_month)
+            .filter(pl.col("date") == lastest_date)
             .collect()
         )
         signal_df = signal_df.rename({"growth": "signal"})

@@ -28,7 +28,7 @@ class CapeSector(BaseSector):
         4. sort the sector sinal using z-score
         """
         total_df_list = []
-        for delta in range(self.z_score_year_range):
+        for delta in range(self.z_score_year_range, 0, -1):
             date = observe_date - timedelta(days=delta * 365)
             key = (date.year, date.month)
             if key in self.sector_signal_cache:
@@ -39,9 +39,10 @@ class CapeSector(BaseSector):
                     self.sector_df, security_signal_df
                 )
                 self.sector_signal_cache[key] = sector_signal_df
+                assert len(sector_signal_df) > 0
             total_df_list.append(sector_signal_df)
-        total_df = pl.concat(total_df_list)
-        sector_list = self.sort_sector_using_z_score(total_df)
+        total_signal_df = pl.concat(total_df_list)
+        sector_list = self.sort_sector_using_z_score(total_signal_df)
         # less PE is better, thus we reverse the order
         sector_list = list(reversed(sector_list))
         assert len(sector_list) > 0
@@ -71,7 +72,9 @@ class CapeSector(BaseSector):
             .with_columns((pl.col("annual_eps") * pl.col("cpi")).alias("annual_eps"))
         )
 
-        print(eps_df.filter(pl.col("sedol7") == "2046251").sort(pl.col("year")))
+        assert (
+            len(eps_df.filter(pl.col("sedol7") == "2046251").sort(pl.col("year"))) > 0
+        )
 
         # aggregate eps on the last 10 years
         # note that when aggregating over the 10 year period,
@@ -104,7 +107,7 @@ class CapeSector(BaseSector):
             (pl.col("price") / (pl.col("avg_quarter_eps") * pl.lit(4))).alias("signal")
         )
 
-        print(signal_df.filter(pl.col("sedol7") == "2046251"))
+        assert len(signal_df.filter(pl.col("sedol7") == "2046251")) > 0
 
         return signal_df
 
@@ -175,10 +178,14 @@ class CapeSector(BaseSector):
 
     def get_report_announcement_date(self):
         # likewise, we only care about those report date in 3/31, 6/30, 9/30, 12/31
-        # for those missing data, you need to manually lag the report date by 3 month when joining
+        # we only consider the diff between announcement_date and report_date in range (0, 93] is reasonable
+        # for those missing data or gap larger than 93, we just fix it to be report_date + 93 days
+        # so it means we should have all the data after 3/31, 6/30, 9/30, 12/31 + 93 days
         announcement_df = (
             pl.read_parquet(self.report_announcement_table)
             .filter(pl.col("announcement_date").is_not_null())
+            .filter(pl.col("announcement_date") - pl.col("report_date") > 0)
+            .filter(pl.col("announcement_date") - pl.col("report_date") <= 93)
             .filter(
                 (
                     (pl.col("report_date").dt.month() == 3)

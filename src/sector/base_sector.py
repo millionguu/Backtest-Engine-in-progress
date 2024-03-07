@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from dateutil.relativedelta import relativedelta
 import polars as pl
 
 
@@ -38,11 +37,6 @@ class BaseSector(ABC):
             .select(["sedol7", "date", "sector", "weight"])
         )
         return sector_weight_df
-
-    def get_last_n_month_bound(self, cur_date, n=3):
-        prev_month = (cur_date - relativedelta(months=n)).strftime("%Y-%m")
-        cur_month = cur_date.strftime("%Y-%m")
-        return (prev_month, cur_month)
 
     @abstractmethod
     def get_security_signal(self, date):
