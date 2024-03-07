@@ -96,24 +96,33 @@ class BaseSector(ABC):
         )
         return sector_signal_df
 
-    def sort_sector_using_z_score(self, total_df, observe_date):
-        """sort in descending order"""
-        prev_month, cur_month = self.get_last_month_bound(observe_date)
-        cur_signal = total_df.filter(pl.col("date") > prev_month).clone()
-        assert len(cur_month) < 15
+    def sort_sector_using_z_score(self, total_signal_df):
+        """
+        sort weighted signal in descending order
+        """
+        latest_month = (
+            total_signal_df.select(pl.col("date").sort()).get_column("date").item(-1)
+        )
+        latest_signal_df = total_signal_df.filter(pl.col("date") == latest_month)
 
-        total_df = total_df.group_by(["sector"]).agg(
-            (pl.col("weighted_signal").std().alias("std")),
-            (pl.col("weighted_signal").mean().alias("mean")),
+        total_signal_df = (
+            total_signal_df.filter(pl.col("date") != latest_month)
+            .group_by(["sector"])
+            .agg(
+                (pl.col("weighted_signal").std().alias("std")),
+                (pl.col("weighted_signal").mean().alias("mean")),
+            )
         )
 
-        merge = cur_signal.join(total_df, on="sector", how="inner").with_columns(
+        merge_df = latest_signal_df.join(
+            total_signal_df, on="sector", how="inner"
+        ).with_columns(
             ((pl.col("weighted_signal") - pl.col("mean")) / pl.col("std")).alias(
                 "z-score"
             )
         )
         # print(merge)
         ordered_sector = (
-            merge.sort("z-score", descending=True).get_column("sector").to_list()
+            merge_df.sort("z-score", descending=True).get_column("sector").to_list()
         )
         return ordered_sector

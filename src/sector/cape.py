@@ -16,6 +16,9 @@ class CapeSector(BaseSector):
             "parquet/cape/us_security_income_report_announcement_date.parquet"
         )
         self.sector_df = self.get_sector_construction()
+        # the key of the cache is (year, month).
+        # but the rebalance period is quarterly, so it's actually (year, quarter)
+        # or could be simplified to year only?
         self.sector_signal_cache = {}
 
     def get_sector_list(self, observe_date):
@@ -28,14 +31,15 @@ class CapeSector(BaseSector):
         total_df_list = []
         for delta in range(self.z_score_year_range):
             date = observe_date - relativedelta(year=delta)
-            if date in self.sector_signal_cache:
-                sector_signal_df = self.sector_signal_cache["date"]
+            key = (date.year, date.month)
+            if key in self.sector_signal_cache:
+                sector_signal_df = self.sector_signal_cache[key]
             else:
                 security_signal_df = self.get_security_signal(date)
                 sector_signal_df = self.get_sector_signal(
                     self.sector_df, security_signal_df
                 )
-                self.sector_signal_cache["date"] = sector_signal_df
+                self.sector_signal_cache[key] = sector_signal_df
             total_df_list.append(sector_signal_df)
         total_df = pl.concat(total_df_list)
         sector_list = self.sort_sector_using_z_score(total_df, observe_date)
@@ -68,6 +72,8 @@ class CapeSector(BaseSector):
             .with_columns((pl.col("annual_eps") * pl.col("cpi")).alias("annual_eps"))
         )
 
+        print(eps_df.filter(pl.col("sedol7") == "2046251").sort(pl.col("year")))
+
         # aggregate eps on the last 10 years
         # note that when aggregating over the 10 year period,
         eps_df = eps_df.group_by("sedol7").agg(
@@ -80,7 +86,9 @@ class CapeSector(BaseSector):
         eps_df = (
             eps_df.filter(pl.col("num_quarter") >= 40)
             .filter(pl.col("num_quarter") <= 43)
-            .with_columns((pl.col("agg_eps") / pl.col("num_quarter")).alias("avg_eps"))
+            .with_columns(
+                (pl.col("agg_eps") / pl.col("num_quarter")).alias("avg_quarter_eps")
+            )
         )
 
         price_df = (
@@ -92,11 +100,13 @@ class CapeSector(BaseSector):
             how="inner",
             on="sedol7",
         )
-        # annulize the PE, rather than quarterly PE
+        # annulize the PE, rather than using quarterly PE
         signal_df = signal_df.with_columns(
-            (pl.col("price") / pl.col("avg_eps") * pl.lit(4)).alias("signal")
+            (pl.col("price") / (pl.col("avg_quarter_eps") * pl.lit(4))).alias("signal")
         )
+
         print(signal_df.filter(pl.col("sedol7") == "2046251"))
+
         return signal_df
 
     def get_eps_construction(self, date):
