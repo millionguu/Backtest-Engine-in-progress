@@ -1,5 +1,4 @@
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
 import polars as pl
 
 from src.sector.base_sector import BaseSector
@@ -30,7 +29,7 @@ class CapeSector(BaseSector):
         """
         total_df_list = []
         for delta in range(self.z_score_year_range):
-            date = observe_date - relativedelta(year=delta)
+            date = observe_date - timedelta(days=delta * 365)
             key = (date.year, date.month)
             if key in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache[key]
@@ -42,7 +41,7 @@ class CapeSector(BaseSector):
                 self.sector_signal_cache[key] = sector_signal_df
             total_df_list.append(sector_signal_df)
         total_df = pl.concat(total_df_list)
-        sector_list = self.sort_sector_using_z_score(total_df, observe_date)
+        sector_list = self.sort_sector_using_z_score(total_df)
         # less PE is better, thus we reverse the order
         sector_list = list(reversed(sector_list))
         assert len(sector_list) > 0

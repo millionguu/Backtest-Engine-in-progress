@@ -1,4 +1,4 @@
-from dateutil.relativedelta import relativedelta
+from datetime import timedelta
 import polars as pl
 
 from src.sector.base_sector import BaseSector
@@ -22,7 +22,8 @@ class SalesGrowthSector(BaseSector):
         """
         total_df_list = []
         for delta in range(self.z_score_month_range):
-            date = observe_date - relativedelta(months=delta)
+            # note that 30 should be the rebalance period
+            date = observe_date - timedelta(days=delta * 30)
             cache_key = (date.year, date.month)
             if cache_key in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache[cache_key]
