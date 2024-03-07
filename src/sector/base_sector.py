@@ -64,6 +64,9 @@ class BaseSector(ABC):
 
         input parameter signal_df should have a column named signal
         """
+        # should only have one date value
+        assert len(signal_df.select(pl.col("date").unique())) == 1
+
         signal_df = signal_df.with_columns(
             pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
         )
@@ -71,7 +74,6 @@ class BaseSector(ABC):
             pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
         )
 
-        # TODO: deal with missing data
         sector_signal_df = (
             signal_df.filter(pl.col("signal").is_not_null())
             .join(sector_df, on=["sedol7", "ym"], how="left")

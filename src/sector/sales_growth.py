@@ -38,12 +38,10 @@ class SalesGrowthSector(BaseSector):
 
     def get_security_signal(self, date):
         # TODO: adjust based on annocement date
-        one_month_ago = date - timedelta(days=60)
         lastest_date = (
             pl.scan_parquet(f"parquet/sales_growth/{self.table}")
-            .filter(pl.col("date") >= one_month_ago)
             .filter(pl.col("date") <= date)
-            .select(pl.col("date").sort())
+            .select(pl.col("date").max())
             .collect()
             .get_column("date")
             .item(-1)
@@ -55,31 +53,3 @@ class SalesGrowthSector(BaseSector):
         )
         signal_df = signal_df.rename({"growth": "signal"})
         return signal_df
-
-    def get_sector_signal(self, sector_df, signal_df):
-        """
-        signal_df should have a column named signal
-        """
-        signal_df = signal_df.with_columns(
-            pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
-        )
-        sector_df = sector_df.with_columns(
-            pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
-        )
-        sector_signal_df = (
-            signal_df.filter(pl.col("signal").is_not_null())
-            .join(sector_df, on=["sedol7", "ym"], how="left")
-            .group_by(["sector", "date"])
-            .agg(
-                pl.col("signal").mean().alias("simple_signal"),
-                (
-                    (pl.col("signal") * pl.coalesce(pl.col("weight"), 0)).sum()
-                    / (pl.col("weight")).sum()
-                ).alias("weighted_signal"),
-                ((pl.col("signal") * pl.coalesce(pl.col("weight"), 0)))
-                .sum()
-                .alias("debug_signal"),
-            )
-            .filter(pl.col("sector") != "--")
-        )
-        return sector_signal_df
