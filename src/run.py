@@ -10,9 +10,9 @@ from src.factor.cape import CapeFactor
 from src.factor.sales_growth import SalesGrowthFactor
 from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
-start_date = date.fromisoformat("2022-01-04")
+start_date = date.fromisoformat("2013-01-01")
 end_date = date.fromisoformat("2023-06-30")
-security_universe = SECTOR_ETF_LIPPER
+security_universe = SecurityTicker
 
 market = Market(security_universe, start_date, end_date)
 
@@ -24,7 +24,7 @@ long_factor.set_portfolio_at_start(long_portfolio)
 blacklist = []
 strategy = StopGainAndLoss(long_portfolio, blacklist)
 strategy.set_limit(1, 1)
-rebalance = Rebalance(30, long_portfolio, long_factor, blacklist)
+rebalance = Rebalance(90, long_portfolio, long_factor, blacklist)
 
 backtest = BackTest(long_portfolio, strategy, market, rebalance)
 backtest.run()
@@ -40,7 +40,7 @@ short_factor.set_portfolio_at_start(short_portfolio)
 blacklist = []
 strategy = StopGainAndLoss(short_portfolio, blacklist)
 strategy.set_limit(0.5, 0.3)
-rebalance = Rebalance(30, short_portfolio, short_factor, blacklist)
+rebalance = Rebalance(90, short_portfolio, short_factor, blacklist)
 
 backtest = BackTest(short_portfolio, strategy, market, rebalance)
 backtest.run()

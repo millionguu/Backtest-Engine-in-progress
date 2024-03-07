@@ -297,32 +297,35 @@ class CapeSector(BaseSector):
             pl.col("date") <= latest_full_report_date
         ).collect()
 
-        eps_annual_part_df = (
-            eps_annual_df.filter(pl.col("date") == partly_report_date)
-            .with_columns(pl.lit(observe_date).alias("observe_date"))
-            .collect()
-            .sort(pl.col("observe_date"))
-        )
-
-        announcement_df = self.get_report_announcement_date(partly_report_date).sort(
-            pl.col("announcement_date")
-        )
-
-        eps_annual_part_df = (
-            eps_annual_part_df.join_asof(
-                announcement_df,
-                left_on="observe_date",
-                right_on="announcement_date",
-                strategy="backward",
+        if partly_report_date is None:
+            return eps_annual_full_df
+        else:
+            eps_annual_part_df = (
+                eps_annual_df.filter(pl.col("date") == partly_report_date)
+                .with_columns(pl.lit(observe_date).alias("observe_date"))
+                .collect()
+                .sort(pl.col("observe_date"))
             )
-            .filter(pl.col("announcement_date").is_not_null())
-            .select(pl.col("sedol7"), pl.col("date"), pl.col("eps"))
-        )
 
-        eps_annual_df = pl.concat(
-            [eps_annual_full_df, eps_annual_part_df], how="vertical"
-        )
-        return eps_annual_df
+            announcement_df = self.get_report_announcement_date(
+                partly_report_date
+            ).sort(pl.col("announcement_date"))
+
+            eps_annual_part_df = (
+                eps_annual_part_df.join_asof(
+                    announcement_df,
+                    left_on="observe_date",
+                    right_on="announcement_date",
+                    strategy="backward",
+                )
+                .filter(pl.col("announcement_date").is_not_null())
+                .select(pl.col("sedol7"), pl.col("date"), pl.col("eps"))
+            )
+
+            eps_annual_df = pl.concat(
+                [eps_annual_full_df, eps_annual_part_df], how="vertical"
+            )
+            return eps_annual_df
 
     def get_report_announcement_date(self, report_date):
         # likewise, we only care about those report date in 3/31, 6/30, 9/30, 12/31
