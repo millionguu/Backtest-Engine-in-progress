@@ -12,7 +12,7 @@ from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
 start_date = date.fromisoformat("2013-01-01")
 end_date = date.fromisoformat("2023-06-30")
-security_universe = SecurityTicker
+security_universe = SECTOR_ETF_TICKER
 
 market = Market(security_universe, start_date, end_date)
 

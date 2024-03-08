@@ -33,6 +33,7 @@ class CapeSector(BaseSector):
             cache_key = history_date
             if cache_key in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache[cache_key]
+                print(f"use cache {cache_key}")
             else:
                 security_signal_df = self.get_security_signal(history_date)
                 sector_signal_df = self.get_sector_signal(
@@ -62,8 +63,14 @@ class CapeSector(BaseSector):
             .filter(pl.col("year") >= ten_year_ago.year)
             .filter(pl.col("year") <= date.year)
             .select(pl.col("year"), pl.col("us_cpi_all").alias("cpi"))
+            .with_columns(
+                pl.when(pl.col("year") == date.year)
+                .then(pl.lit(0).alias("cpi"))
+                .otherwise(pl.col("cpi"))
+            )
             .with_columns((pl.col("cpi") + pl.lit(1)).alias("cpi"))
-            .with_columns(pl.col("cpi").cum_prod())
+            .sort(pl.col("year"), descending=True)
+            .with_columns(pl.col("cpi").cum_prod().alias("cpi"))
         )
 
         eps_df = (
