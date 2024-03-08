@@ -45,24 +45,8 @@ invesco_sp500_ticker_sector_etf = {
 }
 
 
-# SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
-SECTOR_ETF_TICKER = [
-    SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
-]
+SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
+# SECTOR_ETF_TICKER = [
+#     SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
+# ]
 SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]
-
-
-# generate factor -> buy top 100 fund
-# read file 5000 lipperid   ->  100
-# equal weight buy 100 fund, each fund 0.001 weight  -> portofolio
-# cash 100  -> fund 0.1 yuan
-
-# wait 30 days and rebalance -> new 100 fund -> diff
-# sold unwanted fund  buy want -> new target
-# list of SecurityLipperId
-
-
-# rebalance total:3/100
-# every fund -> 1/3
-# 1. new fund  sold unwanteda buy want   
-# 2. no new fund  -> 33   35/total_value  30/total_value  40/total_value  value> 1  total_weight == 1

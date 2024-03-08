@@ -157,7 +157,7 @@ def write_cape_us_price_data():
 
 
 def write_cpi_data():
-    table = "us_cpi"
+    table = "us_cpi_yoy"
     data = pl.read_csv("data/CPI Data.csv")
     data = data.rename(
         {
@@ -172,26 +172,31 @@ def write_cpi_data():
         "date", "us_cpi_all", "us_cpi_core", "us_chained_cpi", "cn_cpi", "cn_cpi_core"
     )
 
-    data = data.with_columns(
-        pl.col("date").str.to_date("%Y/%m/%d"),
-        pl.col("us_cpi_all").cast(pl.Float32, strict=False),
-        pl.col("us_cpi_core").cast(pl.Float32, strict=False),
-        pl.col("us_chained_cpi").cast(pl.Float32, strict=False),
-        pl.col("cn_cpi").cast(pl.Float32, strict=False),
-        pl.col("cn_cpi_core").cast(pl.Float32, strict=False),
-    ).sort(pl.col("date"))
+    data = (
+        data.with_columns(
+            pl.col("date").str.to_date("%Y/%m/%d"),
+            pl.col("us_cpi_all").cast(pl.Float32, strict=False),
+            pl.col("us_cpi_core").cast(pl.Float32, strict=False),
+            pl.col("us_chained_cpi").cast(pl.Float32, strict=False),
+            pl.col("cn_cpi").cast(pl.Float32, strict=False),
+            pl.col("cn_cpi_core").cast(pl.Float32, strict=False),
+        )
+        .filter(pl.col("date").dt.month() == 12)
+        .sort(pl.col("date"))
+    )
 
-    cpi_mom = (
+    cpi_yoy = (
         data.select(pl.all().exclude("date")).to_numpy()
         - data.select(pl.all().exclude("date")).shift(1).to_numpy()
     ) / data.select(pl.all().exclude("date")).shift(1).to_numpy()
 
-    cpi_mom = pl.from_numpy(
-        cpi_mom, schema=data.select(pl.all().exclude("date")).schema
+    cpi_yoy = pl.from_numpy(
+        cpi_yoy, schema=data.select(pl.all().exclude("date")).schema
     )
-    cpi_mom = pl.concat([data.select(pl.col("date")), cpi_mom], how="horizontal")
-    # cpi_mom.write_database(table, str(engine.url))
-    cpi_mom.write_parquet(f"parquet/cape/{table}.parquet")
+    cpi_yoy = pl.concat(
+        [data.select(pl.col("date").dt.year().alias("year")), cpi_yoy], how="horizontal"
+    )
+    cpi_yoy.write_parquet(f"parquet/cape/{table}.parquet")
 
 
 def write_income_report_date():
@@ -211,4 +216,4 @@ def write_income_report_date():
 
 
 if __name__ == "__main__":
-    write_cape_us_price_data()
+    write_cpi_data()
