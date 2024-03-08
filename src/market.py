@@ -68,7 +68,11 @@ class Market:
             raise ValueError(f"unexpected type: {security}")
 
     def query_ticker_return(self, security, date):
-        res = self.data[security].filter(pl.col("date") == date)
+        res = (
+            self.data[security]
+            .filter(pl.col("date") == date)
+            .filter(pl.col("return").is_not_null())
+        )
         if len(res) == 1:
             return res.get_column("return").item(0)
         else:
@@ -76,8 +80,10 @@ class Market:
             return 0
 
     def query_lipper_return(self, security, date):
-        res = self.data.filter(pl.col("end_date") == date).filter(
-            pl.col("lipper_id") == int(security.lipper_id)
+        res = (
+            self.data.filter(pl.col("end_date") == date)
+            .filter(pl.col("lipper_id") == int(security.lipper_id))
+            .filter(pl.col("return").is_not_null())
         )
         if len(res) == 1:
             return res.get_column("return").item(0) * 0.01
