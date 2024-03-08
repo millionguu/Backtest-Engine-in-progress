@@ -6,7 +6,7 @@ from src.sector.base_sector import BaseSector
 
 class CapeSector(BaseSector):
     def __init__(self):
-        self.z_score_year_range = 10
+        # self.z_score_year_range = 10
         self.eps_quarterly_table = "parquet/cape/us_security_eps_quarterly.parquet"
         self.eps_annually_table = "parquet/cape/us_security_eps_annually.parquet"
         self.price_table = "parquet/cape/us_security_price_daily.parquet"
@@ -15,8 +15,6 @@ class CapeSector(BaseSector):
             "parquet/cape/us_security_income_report_announcement_date.parquet"
         )
         self.sector_df = self.get_sector_construction()
-        # the key of the cache is date.
-        self.sector_signal_cache = {}
 
     def get_sector_list(self, observe_date):
         """
@@ -25,22 +23,17 @@ class CapeSector(BaseSector):
         3. aggregate security signal and calculate sector signal
         4. sort the sector sinal using z-score
         """
+        z_score_year_range = observe_date.year - 2000  # dynamic z-score range
         total_df_list = []
-        for delta in range(self.z_score_year_range):
+        for delta in range(z_score_year_range):
             history_date = datetime.date(
                 observe_date.year - delta, observe_date.month, observe_date.day
             )
-            cache_key = history_date
-            if cache_key in self.sector_signal_cache:
-                sector_signal_df = self.sector_signal_cache[cache_key]
-                print(f"use cache {cache_key}")
-            else:
-                security_signal_df = self.get_security_signal(history_date)
-                sector_signal_df = self.get_sector_signal(
-                    self.sector_df, security_signal_df
-                )
-                self.sector_signal_cache[cache_key] = sector_signal_df
-                assert len(sector_signal_df) > 0
+            security_signal_df = self.get_security_signal(history_date)
+            sector_signal_df = self.get_sector_signal(
+                self.sector_df, security_signal_df
+            )
+            assert len(sector_signal_df) > 0
             total_df_list.append(sector_signal_df)
         total_signal_df = pl.concat(total_df_list)
         sector_list = self.sort_sector_using_z_score(total_signal_df)
@@ -65,8 +58,9 @@ class CapeSector(BaseSector):
             .select(pl.col("year"), pl.col("us_cpi_all").alias("cpi"))
             .with_columns(
                 pl.when(pl.col("year") == date.year)
-                .then(pl.lit(0).alias("cpi"))
+                .then(pl.lit(0))
                 .otherwise(pl.col("cpi"))
+                .alias("cpi")
             )
             .with_columns((pl.col("cpi") + pl.lit(1)).alias("cpi"))
             .sort(pl.col("year"), descending=True)

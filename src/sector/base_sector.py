@@ -97,12 +97,14 @@ class BaseSector(ABC):
         sort weighted signal in descending order
         """
         latest_month = (
-            total_signal_df.select(pl.col("date").sort()).get_column("date").item(-1)
+            total_signal_df.select(pl.col("date").max()).get_column("date").item(0)
         )
         latest_signal_df = total_signal_df.filter(pl.col("date") == latest_month)
 
         total_signal_df = (
             total_signal_df.filter(pl.col("date") != latest_month)
+            .filter(pl.col("weighted_signal").is_not_null())
+            .filter(pl.col("weighted_signal").is_not_nan())
             .group_by(["sector"])
             .agg(
                 (pl.col("weighted_signal").std().alias("std")),

@@ -77,6 +77,7 @@ class Metric:
         self.value_book = self.portfolio.value_book
         self.num_dates = self.value_book.shape[0]
         self.ann_const = 252
+        # TODO: improve calculation
         self.annualized_factor = self.num_dates / self.ann_const
 
     def annualized_return(self):

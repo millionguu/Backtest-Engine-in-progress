@@ -64,6 +64,8 @@ class Market:
             return self.query_ticker_return(security, date)
         elif isinstance(security, SecurityLipper):
             return self.query_lipper_return(security, date)
+        else:
+            raise ValueError(f"unexpected type: {security}")
 
     def query_ticker_return(self, security, date):
         res = self.data[security].filter(pl.col("date") == date)
