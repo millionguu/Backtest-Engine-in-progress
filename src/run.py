@@ -10,7 +10,7 @@ from src.factor.cape import CapeFactor
 from src.factor.sales_growth import SalesGrowthFactor
 from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
-start_date = date(2003, 1, 1)
+start_date = date(2013, 1, 1)
 end_date = date(2023, 10, 31)
 security_universe = SECTOR_ETF_TICKER
 

@@ -44,7 +44,7 @@ class SalesGrowthSector(BaseSector):
             .select(pl.col("date").max())
             .collect()
             .get_column("date")
-            .item(-1)
+            .item(0)
         )
         signal_df = (
             pl.scan_parquet(f"parquet/sales_growth/{self.table}")

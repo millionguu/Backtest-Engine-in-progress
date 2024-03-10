@@ -10,6 +10,9 @@ class BaseFactor(ABC):
 
     def set_portfolio_at_start(self, portfolio):
         position = self.get_position(portfolio.start_date)
+        print(
+            f"initially buy on {portfolio.start_date}: {list(map(lambda t: (t[0].display(), round(t[1],3)), position))}"
+        )
         for security, weight in position:
             portfolio.add_security_weight(security, weight, 0)
 
@@ -27,11 +30,3 @@ class BaseFactor(ABC):
     @abstractmethod
     def get_fund_list(self, date):
         pass
-
-
-class DummyFactor(BaseFactor):
-    def __init__(self, security_universe, start_date, end_date):
-        super().__init__(security_universe, start_date, end_date)
-
-    def get_fund_list(self, date):
-        return self.security_universe

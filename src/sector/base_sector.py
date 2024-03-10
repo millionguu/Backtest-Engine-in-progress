@@ -110,7 +110,11 @@ class BaseSector(ABC):
                 (pl.col("weighted_signal").std().alias("std")),
                 (pl.col("weighted_signal").mean().alias("mean")),
             )
+            .filter(pl.col("std").is_not_null())
         )
+
+        assert len(total_signal_df.filter(pl.col("std").is_null())) == 0
+        assert len(total_signal_df.filter(pl.col("mean").is_null())) == 0
 
         merge_df = latest_signal_df.join(
             total_signal_df, on="sector", how="inner"
