@@ -181,7 +181,7 @@ def write_cpi_data():
             pl.col("cn_cpi").cast(pl.Float32, strict=False),
             pl.col("cn_cpi_core").cast(pl.Float32, strict=False),
         )
-        .filter(pl.col("date").dt.month() == 12)
+        # .filter(pl.col("date").dt.month() == 12)
         .sort(pl.col("date"))
     )
 
