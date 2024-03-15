@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import polars as pl
 import yfinance
 
@@ -156,6 +156,51 @@ def write_cape_us_price_data():
     data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
+def write_cape_us_sedol_return_data():
+    file_name = "Price_MSCI USA_20001231-20231130.xlsx"
+    table = "us_security_sedol_return_daily"
+
+    data = pl.read_excel(f"data/{file_name}")
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], variable_name="date", value_name="price"
+    )
+    data = (
+        data.with_columns(
+            pl.col("date").str.to_date("%Y%m%d"),
+            pl.col("price").cast(pl.Float32, strict=False),
+        )
+        .select("sedol7", "date", "price")
+        .sort(
+            [
+                "sedol7",
+                "date",
+            ]
+        )
+    )
+    prev_data = data.select(
+        (pl.col("date") + timedelta(days=1)).alias("next_day"),
+        pl.col("sedol7"),
+        pl.col("price").alias("prev_price"),
+    )
+    data = (
+        data.join(
+            prev_data,
+            how="inner",
+            left_on=["sedol7", "date"],
+            right_on=["sedol7", "next_day"],
+        )
+        .with_columns(
+            ((pl.col("price") - pl.col("prev_price")) / pl.col("prev_price")).alias(
+                "return"
+            )
+        )
+        .filter(pl.col("return").is_not_null())
+        .select("sedol7", "date", "return")
+    )
+    data.write_parquet(f"parquet/fund_return/{table}.parquet")
+
+
 def write_cpi_data():
     table = "us_cpi"
     data = pl.read_csv("data/CPI Data.csv")
@@ -217,4 +262,4 @@ def write_income_report_date():
 
 
 if __name__ == "__main__":
-    write_cpi_data()
+    write_cape_us_sedol_return_data()

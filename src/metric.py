@@ -1,5 +1,6 @@
 import numpy as np
 import polars as pl
+import matplotlib.pyplot as plt
 from datetime import timedelta
 
 
@@ -106,6 +107,14 @@ class Metric:
             / 12
         )
 
+    def sharpe_ratio(self):
+        risk_free_rate = 0.04
+        values = self.value_book.get_column("value").to_numpy()
+        returns = (values - values.shift(1)) / values.shift(1)
+        avg_return = np.mean(returns)
+        std_return = np.std(returns)
+        return (avg_return - risk_free_rate) / std_return
+
 
 class InformationCoefficient:
     def __init__(self, portfolio, factor, market, rebalance_period) -> None:
@@ -113,6 +122,7 @@ class InformationCoefficient:
         self.factor = factor
         self.market = market
         self.rebalance_period = rebalance_period
+        self.ie = None
 
     def get_information_coefficient(self):
         total_rows = []
@@ -126,6 +136,7 @@ class InformationCoefficient:
         df = df.group_by("date").agg(
             pl.corr(pl.col("rank"), pl.col("return")).alias("ie")
         )
+        self.ie = df
         return df
 
     def get_rows(self, date):
@@ -151,6 +162,22 @@ class InformationCoefficient:
             range_return += self.market.query_return(fund, delta_date)
         return range_return
 
+    def draw(self):
+        _, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+        ie = self.ie.with_columns(
+            pl.col("date").cast(pl.String).str.slice(0, 7).alias("date")
+        )
+        plt.bar(ie.get_column("date"), ie.get_column("ie"))
+
+        step = ie.shape[0] // 30
+        ax.set_xticks(
+            ticks=ie.get_column("date").to_list()[::step],
+            labels=ie.get_column("date").to_list()[::step],
+            rotation=90,
+        )
+        plt.show()
+
 
 class HitRate:
     def __init__(self, portfolio, factor, market, rebalance_period, benchmark) -> None:
@@ -161,6 +188,7 @@ class HitRate:
         self.benchmark = benchmark
         self.market.securities.append(benchmark)
         self.market.load_ticker_return_data()
+        self.hr = None
 
     def get_hit_rate(self):
         total_rows = []
@@ -177,6 +205,7 @@ class HitRate:
                 / (pl.col("return").count())
             ).alias("hr")
         )
+        self.hr = df
         return df
 
     def get_rows(self, date):
@@ -202,3 +231,19 @@ class HitRate:
             delta_date = date - timedelta(delta)
             range_return += self.market.query_return(fund, delta_date)
         return range_return
+
+    def draw(self):
+        _, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+        hr = self.hr.with_columns(
+            pl.col("date").cast(pl.String).str.slice(0, 7).alias("date")
+        )
+        plt.bar(hr.get_column("date"), hr.get_column("hr"))
+
+        step = hr.shape[0] // 30
+        ax.set_xticks(
+            ticks=hr.get_column("date").to_list()[::step],
+            labels=hr.get_column("date").to_list()[::step],
+            rotation=90,
+        )
+        plt.show()
