@@ -22,9 +22,10 @@ class CapeSector(BaseSector):
         3. aggregate security signal and calculate sector signal
         4. sort the sector sinal using z-score
         """
-        # dynamic z-score range, use all the history data after 2000
-        # z_score_year_range = observe_date.year - 2000
-        z_score_year_range = 10
+        # z-score range
+        z_score_year_range = (
+            10 if observe_date.year > 2010 else observe_date.year - 2001
+        )
         total_df_list = []
         for delta in range(z_score_year_range):
             history_date = datetime.date(

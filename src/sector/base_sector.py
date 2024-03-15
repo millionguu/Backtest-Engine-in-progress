@@ -102,7 +102,8 @@ class BaseSector(ABC):
         latest_signal_df = total_signal_df.filter(pl.col("date") == latest_month)
 
         total_signal_df = (
-            total_signal_df.filter(pl.col("date") != latest_month)
+            total_signal_df
+            # .filter(pl.col("date") != latest_month)
             .filter(pl.col("weighted_signal").is_not_null())
             .filter(pl.col("weighted_signal").is_not_nan())
             .group_by(["sector"])
