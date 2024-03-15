@@ -11,12 +11,15 @@ class Portfolio:
         self.iter_index = 0
 
         self.security_book = defaultdict(self.empty_security_book)
+        num = len(self.date_df)
         self.value_book = (
             pl.DataFrame(
                 {
                     "date": self.date_df.to_series(),
-                    "cash": initial_cash,
-                    "value": initial_cash,
+                    "cash": pl.repeat(initial_cash, n=num, eager=True),
+                    "value": pl.repeat(initial_cash, n=num, eager=True),
+                    "turnover": pl.repeat(0, n=num, eager=True),
+                    "sector": pl.repeat("", n=num, eager=True),
                 }
             )
             .with_row_index()

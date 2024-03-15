@@ -2,7 +2,8 @@ from datetime import date
 from src.security_symbol import SecurityTicker
 from src.market import Market
 from src.portfolio import Portfolio
-from src.analysis import Analysis, Benchmark, Metric
+from src.analysis import Analysis, Benchmark
+from src.metric import Metric
 from src.rebalance import Rebalance
 from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
@@ -10,7 +11,7 @@ from src.factor.cape import CapeFactor
 from src.factor.sales_growth import SalesGrowthFactor
 from src.fund_universe import SECTOR_ETF_TICKER, SECTOR_ETF_LIPPER
 
-start_date = date(2015, 1, 1)
+start_date = date(2022, 1, 15)
 end_date = date(2023, 10, 31)
 security_universe = SECTOR_ETF_TICKER
 
@@ -54,7 +55,7 @@ benchmark = Benchmark(
 ).get_performance()
 
 metric = Metric(long_portfolio, benchmark)
-print(f"portfolio annulized return: {metric.annualized_return()}")
+print(f"portfolio annulized return: {metric.portfolio_annualized_return()}")
 print(
     f"portfolio annulized return relative to benchmark: {metric.annualized_return_relative_to_benchmark()}"
 )

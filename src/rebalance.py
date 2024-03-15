@@ -53,6 +53,11 @@ class Rebalance:
             f"rebalance on {cur_date}: {list(map(lambda t: (t[0].display(), round(t[1],3)), position_change))}"
         )
 
+        turnover = sum((map(lambda t: abs(t[1]), position_change)))
+        self.portfolio.value_book[iter_index]["turnover"] = turnover
+        sector = ",".join((map(lambda t: t[0].sector, position_change)))
+        self.portfolio.value_book[iter_index]["sector"] = sector
+
         for security, weight_change in position_change:
             if weight_change < 0:
                 self.portfolio.reduce_security_weight(

@@ -239,7 +239,7 @@ class CapeSector(BaseSector):
             partly_report_date = datetime.date(year, 6, 30)
         elif observe_date >= datetime.date(
             year, 9, 30
-        ) and observe_date < datetime.date(year, 12, 31):
+        ) and observe_date <= datetime.date(year, 12, 31):
             latest_full_report_date = datetime.date(year, 6, 30)
             partly_report_date = datetime.date(year, 9, 30)
         else:
