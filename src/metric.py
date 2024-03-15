@@ -108,12 +108,15 @@ class Metric:
         )
 
     def sharpe_ratio(self):
-        risk_free_rate = 0.04
-        values = self.value_book.get_column("value").to_numpy()
-        returns = (values - values.shift(1)) / values.shift(1)
-        avg_return = np.mean(returns)
+        risk_free_rate = np.power(1 + 0.04, 1 / 252) - 1
+        values = self.value_book.get_column("value")
+        returns = (values.to_numpy() - values.shift(1).to_numpy()) / values.shift(
+            1
+        ).to_numpy()
+        returns = returns[~np.isnan(returns)]
+        avg_return = np.mean(returns - risk_free_rate)
         std_return = np.std(returns)
-        return (avg_return - risk_free_rate) / std_return
+        return (avg_return) / std_return
 
 
 class InformationCoefficient:
@@ -165,17 +168,18 @@ class InformationCoefficient:
     def draw(self):
         _, ax = plt.subplots(1, 1, figsize=(10, 5))
 
-        ie = self.ie.with_columns(
+        ie = self.ie.sort(pl.col("date")).with_columns(
             pl.col("date").cast(pl.String).str.slice(0, 7).alias("date")
         )
         plt.bar(ie.get_column("date"), ie.get_column("ie"))
 
-        step = ie.shape[0] // 30
+        step = max(ie.shape[0] // 30, 1)
         ax.set_xticks(
             ticks=ie.get_column("date").to_list()[::step],
             labels=ie.get_column("date").to_list()[::step],
             rotation=90,
         )
+        ax.set_title("Information Coefficient")
         plt.show()
 
 
@@ -235,15 +239,16 @@ class HitRate:
     def draw(self):
         _, ax = plt.subplots(1, 1, figsize=(10, 5))
 
-        hr = self.hr.with_columns(
+        hr = self.hr.sort(pl.col("date")).with_columns(
             pl.col("date").cast(pl.String).str.slice(0, 7).alias("date")
         )
         plt.bar(hr.get_column("date"), hr.get_column("hr"))
 
-        step = hr.shape[0] // 30
+        step = max(hr.shape[0] // 30, 1)
         ax.set_xticks(
             ticks=hr.get_column("date").to_list()[::step],
             labels=hr.get_column("date").to_list()[::step],
             rotation=90,
         )
+        ax.set_title("Hit Rate")
         plt.show()
