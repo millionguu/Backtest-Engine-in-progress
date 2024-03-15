@@ -6,11 +6,10 @@ from src.sector.base_sector import BaseSector
 
 class CapeSector(BaseSector):
     def __init__(self):
-        # self.z_score_year_range = 10
         self.eps_quarterly_table = "parquet/cape/us_security_eps_quarterly.parquet"
         self.eps_annually_table = "parquet/cape/us_security_eps_annually.parquet"
         self.price_table = "parquet/cape/us_security_price_daily.parquet"
-        self.cpi_table = "parquet/cape/us_cpi_yoy.parquet"
+        self.cpi_table = "parquet/base/us_cpi.parquet"
         self.report_announcement_table = (
             "parquet/cape/us_security_income_report_announcement_date.parquet"
         )
@@ -23,14 +22,18 @@ class CapeSector(BaseSector):
         3. aggregate security signal and calculate sector signal
         4. sort the sector sinal using z-score
         """
-        # dynamic z-score range, use all the history data after 2000
-        z_score_year_range = observe_date.year - 2000
+        # z-score range
+        z_score_year_range = (
+            10 if observe_date.year > 2010 else observe_date.year - 2001
+        )
         total_df_list = []
         for delta in range(z_score_year_range):
             history_date = datetime.date(
                 observe_date.year - delta, observe_date.month, observe_date.day
             )
             security_signal_df = self.get_security_signal(history_date)
+            # we don't like negative PE
+            security_signal_df = security_signal_df.filter(pl.col("signal") > 0)
             sector_signal_df = self.get_sector_signal(
                 self.sector_df, security_signal_df
             )
@@ -50,49 +53,56 @@ class CapeSector(BaseSector):
 
         eps_df = self.get_eps_construction(date)
 
-        ten_year_ago = datetime.date(date.year - 11, date.month, date.day)
+        # make sure to have 120 months
+        eleven_years_ago = date.year - 11
+
         # compound eps with the CPI data
         cpi_df = (
-            pl.read_parquet(self.cpi_table)
-            .filter(pl.col("year") >= ten_year_ago.year)
+            pl.scan_parquet(self.cpi_table)
+            .with_columns(pl.col("date").dt.year().alias("year"))
+            .with_columns(pl.col("date").dt.month().alias("month"))
+            .filter(pl.col("year") >= eleven_years_ago)
             .filter(pl.col("year") <= date.year)
-            .select(pl.col("year"), pl.col("us_cpi_all").alias("cpi"))
-            .with_columns(
-                pl.when(pl.col("year") == date.year)
-                .then(pl.lit(0))
-                .otherwise(pl.col("cpi"))
-                .alias("cpi")
+            .select(
+                pl.col("year"), pl.col("month"), pl.col("us_cpi_all").alias("cpi_index")
             )
-            .with_columns((pl.col("cpi") + pl.lit(1)).alias("cpi"))
-            .sort(pl.col("year"), descending=True)
-            .with_columns(pl.col("cpi").cum_prod().alias("cpi"))
+            .collect()
+        )
+
+        latest_cpi_index = (
+            cpi_df.select(pl.col("cpi_index").max()).get_column("cpi_index").item(0)
+        )
+
+        cpi_df = cpi_df.with_columns(
+            (pl.lit(latest_cpi_index) / pl.col("cpi_index")).alias("cpi")
         )
 
         eps_df = (
-            eps_df.filter(pl.col("year") >= ten_year_ago.year)
-            .join(cpi_df, how="inner", on="year")
-            .with_columns((pl.col("annual_eps") * pl.col("cpi")).alias("annual_eps"))
+            eps_df.filter(pl.col("year") >= eleven_years_ago)
+            .join(cpi_df, how="inner", on=["year", "month"])
+            .with_columns((pl.col("eps") * pl.col("cpi")).alias("eps"))
         )
 
         assert (
             len(eps_df.filter(pl.col("sedol7") == "2046251").sort(pl.col("year"))) > 0
         )
 
-        # aggregate eps on the last 10 years
-        # note that when aggregating over the 10 year period,
+        # aggregate eps over the last 120 months
+        eps_df = eps_df.with_columns(
+            (pl.col("year") * 100 + pl.col("month"))
+            .rank("ordinal", descending=True)
+            .over("sedol7")
+            .alias("row_number")
+        ).filter(pl.col("row_number") <= 120)
+
         eps_df = eps_df.group_by("sedol7").agg(
-            pl.col("annual_eps").sum().alias("agg_eps"),
-            pl.col("num_quarter").sum().alias("num_quarter"),
+            pl.col("eps").sum().alias("agg_eps"),
+            pl.col("row_number").max().alias("max_row_number"),
         )
 
-        # the num_quarter should range between [40, 44]
-        # for those securities that have missing data in the past 10 years, we drop it
-        eps_df = (
-            eps_df.filter(pl.col("num_quarter") >= 40)
-            .filter(pl.col("num_quarter") <= 44)
-            .with_columns(
-                (pl.col("agg_eps") / pl.col("num_quarter")).alias("avg_quarter_eps")
-            )
+        # we only want those securities that has 120 months data
+        eps_df = eps_df.filter(pl.col("max_row_number") == 120).with_columns(
+            (pl.col("agg_eps") / pl.lit(10)).alias("avg_eps")
         )
 
         # adjust date to the latest market open date, thus to have price data
@@ -108,6 +118,7 @@ class CapeSector(BaseSector):
         price_df = (
             pl.scan_parquet(self.price_table)
             .filter(pl.col("date") == latest_market_open_date)
+            .filter(pl.col("price").is_not_null())
             .collect()
         )
 
@@ -118,7 +129,7 @@ class CapeSector(BaseSector):
         )
         # annulize the PE, rather than using quarterly PE
         signal_df = signal_df.with_columns(
-            (pl.col("price") / (pl.col("avg_quarter_eps") * pl.lit(4))).alias("signal")
+            (pl.col("price") / pl.col("avg_eps")).alias("signal")
         )
 
         # assert len(signal_df.filter(pl.col("sedol7") == "2046251")) > 0
@@ -137,48 +148,62 @@ class CapeSector(BaseSector):
             ]
         ).agg(pl.col("eps").max().alias("eps"))
 
-        # aggregate to annual
-        eps_quarter_df = eps_quarter_df.group_by(
-            [
-                pl.col("sedol7").alias("quarter_sedol7"),
-                pl.col("year").alias("quarter_year"),
-            ]
-        ).agg(
-            pl.col("eps").sum().alias("quarter_annual_eps"),
-            pl.col("eps").count().alias("quarter_num_quarter"),
+        # explode to monthly
+        eps_quarter_df = eps_quarter_df.with_columns(
+            pl.lit(list(range(3))).alias("diff")
+        )
+
+        eps_quarter_df = (
+            eps_quarter_df.explode("diff")
+            .with_columns(pl.col("diff").cast(pl.Int8))
+            .with_columns((pl.col("month") - pl.col("diff")).alias("month"))
+            .with_columns((pl.col("eps") / 4).alias("eps"))
+            .select(
+                pl.col("sedol7").alias("a_sedol7"),
+                pl.col("year").alias("a_year"),
+                pl.col("month").alias("a_month"),
+                pl.col("eps").alias("a_eps"),
+            )
         )
 
         eps_annual_df = self.get_eps_annual_df(date)
 
         # de-duplicate
-        eps_annual_df = (
-            eps_annual_df.group_by(
-                pl.col("sedol7").alias("annual_sedol7"),
-                pl.col("date").dt.year().alias("annual_year"),
-            )
-            .agg(pl.col("eps").max().alias("annual_annual_eps"))
-            .with_columns(pl.lit(4).alias("annual_num_quarter"))
+        eps_annual_df = eps_annual_df.group_by(
+            pl.col("sedol7").alias("sedol7"),
+            pl.col("date").dt.year().alias("year"),
+        ).agg(pl.col("eps").max().alias("eps"))
+
+        # explode to monthly
+        eps_annual_df = eps_annual_df.with_columns(
+            pl.lit(list(range(12))).alias("diff")
         )
 
-        # when missing a whole year data in quartely_df,
-        # we try to replenish it using the annualy_df.
-        # if still missing data after the replenish, we drop it.
+        eps_annual_df = (
+            eps_annual_df.explode("diff")
+            .with_columns(pl.col("diff").cast(pl.Int8))
+            .with_columns(pl.lit(12, dtype=pl.Int8).alias("month"))
+            .with_columns((pl.col("month") - pl.col("diff")).alias("month"))
+            .with_columns((pl.col("eps") / 12).alias("eps"))
+            .select(
+                pl.col("sedol7").alias("b_sedol7"),
+                pl.col("year").alias("b_year"),
+                pl.col("month").alias("b_month"),
+                pl.col("eps").alias("b_eps"),
+            )
+        )
+
+        # merge two data source
         eps_df = eps_quarter_df.join(
             eps_annual_df,
             how="outer",
-            left_on=["quarter_sedol7", "quarter_year"],
-            right_on=["annual_sedol7", "annual_year"],
+            left_on=["a_sedol7", "a_year", "a_month"],
+            right_on=["b_sedol7", "b_year", "b_month"],
         ).select(
-            pl.coalesce(pl.col("quarter_sedol7"), pl.col("annual_sedol7")).alias(
-                "sedol7"
-            ),
-            pl.coalesce(pl.col("quarter_year"), pl.col("annual_year")).alias("year"),
-            pl.coalesce(
-                pl.col("quarter_annual_eps"), pl.col("annual_annual_eps")
-            ).alias("annual_eps"),
-            pl.coalesce(
-                pl.col("quarter_num_quarter"), pl.col("annual_num_quarter")
-            ).alias("num_quarter"),
+            pl.coalesce(pl.col("a_sedol7"), pl.col("b_sedol7")).alias("sedol7"),
+            pl.coalesce(pl.col("a_year"), pl.col("b_year")).alias("year"),
+            pl.coalesce(pl.col("a_month"), pl.col("b_month")).alias("month"),
+            pl.coalesce(pl.col("a_eps"), pl.col("b_eps")).alias("eps"),
         )
         return eps_df
 
@@ -223,6 +248,7 @@ class CapeSector(BaseSector):
         # note that we only use quarterly data whose report date is 3/31, 6/30, 9/30, 12/31
         eps_quarter_df = (
             pl.scan_parquet(self.eps_quarterly_table)
+            .filter(pl.col("date").dt.year() >= latest_full_report_date.year - 11)
             .filter(pl.col("eps").is_not_null())
             .filter(
                 ((pl.col("date").dt.month() == 3) & (pl.col("date").dt.day() == 31))
@@ -236,21 +262,8 @@ class CapeSector(BaseSector):
         eps_quarter_full_df = (
             eps_quarter_df.filter(pl.col("date") <= latest_full_report_date)
             .collect()
-            .with_columns(pl.col("date").dt.year().alias("year"))
+            .select(pl.col("sedol7"), pl.col("date"), pl.col("eps"))
         )
-
-        # potentially missing data, we drop the whole year,
-        # and try to use annually eps in the future
-        missing_data_df = (
-            eps_quarter_full_df.group_by(pl.col("sedol7"), pl.col("year"))
-            .agg(pl.count("eps").alias("cnt"))
-            .filter(pl.col("cnt") < 4)
-            .select(pl.col("sedol7"), pl.col("year"))
-        )
-
-        eps_quarter_full_df = eps_quarter_full_df.join(
-            missing_data_df, how="anti", on=["sedol7", "year"]
-        ).select("sedol7", "date", "eps")
 
         eps_quarter_part_df = (
             eps_quarter_df.filter(pl.col("date") == partly_report_date)

@@ -157,7 +157,7 @@ def write_cape_us_price_data():
 
 
 def write_cpi_data():
-    table = "us_cpi_yoy"
+    table = "us_cpi"
     data = pl.read_csv("data/CPI Data.csv")
     data = data.rename(
         {
@@ -181,22 +181,23 @@ def write_cpi_data():
             pl.col("cn_cpi").cast(pl.Float32, strict=False),
             pl.col("cn_cpi_core").cast(pl.Float32, strict=False),
         )
-        .filter(pl.col("date").dt.month() == 12)
+        # .filter(pl.col("date").dt.month() == 12)
         .sort(pl.col("date"))
     )
 
-    cpi_yoy = (
-        data.select(pl.all().exclude("date")).to_numpy()
-        - data.select(pl.all().exclude("date")).shift(1).to_numpy()
-    ) / data.select(pl.all().exclude("date")).shift(1).to_numpy()
+    # cpi_yoy = (
+    #     data.select(pl.all().exclude("date")).to_numpy()
+    #     - data.select(pl.all().exclude("date")).shift(1).to_numpy()
+    # ) / data.select(pl.all().exclude("date")).shift(1).to_numpy()
 
-    cpi_yoy = pl.from_numpy(
-        cpi_yoy, schema=data.select(pl.all().exclude("date")).schema
-    )
-    cpi_yoy = pl.concat(
-        [data.select(pl.col("date").dt.year().alias("year")), cpi_yoy], how="horizontal"
-    )
-    cpi_yoy.write_parquet(f"parquet/cape/{table}.parquet")
+    # cpi_yoy = pl.from_numpy(
+    #     cpi_yoy, schema=data.select(pl.all().exclude("date")).schema
+    # )
+    # cpi_yoy = pl.concat(
+    #     [data.select(pl.col("date").dt.year().alias("year")), cpi_yoy], how="horizontal"
+    # )
+    # cpi_yoy.write_parquet(f"parquet/cape/{table}.parquet")
+    data.write_parquet(f"parquet/base/{table}.parquet")
 
 
 def write_income_report_date():

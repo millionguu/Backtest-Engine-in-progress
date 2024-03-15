@@ -67,28 +67,37 @@ class BaseSector(ABC):
         # should only have one date value
         assert len(signal_df.select(pl.col("date").unique())) == 1
 
-        signal_df = signal_df.with_columns(
-            pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
-        )
-        sector_df = sector_df.with_columns(
+        signal_df = signal_df.filter(pl.col("signal").is_not_null()).with_columns(
             pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym")
         )
 
+        sector_df = (
+            sector_df.filter(pl.col("weight") > 0)
+            .filter(pl.col("sector") != pl.lit("--"))
+            .with_columns(pl.col("date").cast(pl.String).str.slice(0, 7).alias("ym"))
+        )
+
         sector_signal_df = (
-            signal_df.filter(pl.col("signal").is_not_null())
-            .join(sector_df, on=["sedol7", "ym"], how="left")
+            signal_df.join(sector_df, on=["sedol7", "ym"], how="inner")
             .group_by(["sector", "date"])
             .agg(
-                pl.col("signal").mean().alias("simple_signal"),
+                (pl.col("signal").mean()).alias("simple_avg_signal"),
+                (pl.col("signal").count()).alias("signal_count"),
                 (
                     (pl.col("signal") * pl.coalesce(pl.col("weight"), 0)).sum()
                     / (pl.col("weight")).sum()
                 ).alias("weighted_signal"),
-                ((pl.col("signal") * pl.coalesce(pl.col("weight"), 0)))
-                .sum()
-                .alias("debug_signal"),
+                (((pl.col("signal") * pl.coalesce(pl.col("weight"), 0))).sum()).alias(
+                    "weighted_signal_numerator"
+                ),
+                (pl.col("weight").sum()).alias("weighted_signal_denominator"),
             )
-            .filter(pl.col("sector") != "--")
+        )
+        # in some cases we don't like negtive value
+        assert len(sector_signal_df.filter(pl.col("weighted_signal") < 0)) == 0
+        # we only believe in those weight denominator are greater than 0.5
+        sector_signal_df = sector_signal_df.filter(
+            pl.col("weighted_signal_denominator") > 0.5
         )
         return sector_signal_df
 
@@ -102,7 +111,8 @@ class BaseSector(ABC):
         latest_signal_df = total_signal_df.filter(pl.col("date") == latest_month)
 
         total_signal_df = (
-            total_signal_df.filter(pl.col("date") != latest_month)
+            total_signal_df
+            # .filter(pl.col("date") != latest_month)
             .filter(pl.col("weighted_signal").is_not_null())
             .filter(pl.col("weighted_signal").is_not_nan())
             .group_by(["sector"])
@@ -110,7 +120,11 @@ class BaseSector(ABC):
                 (pl.col("weighted_signal").std().alias("std")),
                 (pl.col("weighted_signal").mean().alias("mean")),
             )
+            .filter(pl.col("std").is_not_null())
         )
+
+        assert len(total_signal_df.filter(pl.col("std").is_null())) == 0
+        assert len(total_signal_df.filter(pl.col("mean").is_null())) == 0
 
         merge_df = latest_signal_df.join(
             total_signal_df, on="sector", how="inner"
