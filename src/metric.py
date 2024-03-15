@@ -99,8 +99,57 @@ class Metric:
         )
         return self.annualized_return_relative_to_benchmark() / tracking_error
 
-    def information_coefficient(self):
+    def avg_monthly_turnover(self):
+        return (
+            self.portfolio.value_book.get_column("turnover").sum()
+            / self.annualized_factor
+            / 12
+        )
+
+
+class InformationCoefficient:
+    def __init__(self, portfolio, factor, market, rebalance_period) -> None:
+        self.portofolio = portfolio
+        self.factor = factor
+        self.market = market
+        self.rebalance_period = rebalance_period
+
+    def get_information_coefficient(self):
+        total_rows = []
+        for dict in self.portofolio.value_book.select(["date", "index"]).to_dicts():
+            if dict["index"] % self.rebalance_period != 0:
+                continue
+            rows = self.get_rows(dict["date"])
+            total_rows.extend(rows)
+
+        df = pl.from_dicts(total_rows)
+        df = df.group_by("date").agg(
+            pl.corr(pl.col("rank"), pl.col("return")).alias("ie")
+        )
+        return df
+
+    def get_hit_rate(self):
         pass
 
-    def turnover(self):
-        pass
+    def get_rows(self, date):
+        # (date, sector, rank, rebalance_period_return)
+        rows = []
+        fund_list = self.factor.get_fund_list(date)
+        for rank, fund in enumerate(fund_list):
+            range_return = self.query_return(fund, date)
+            rows.append(
+                {
+                    "date": date,
+                    "sector": fund.sector,
+                    "rank": rank,
+                    "return": range_return,
+                }
+            )
+        return rows
+
+    def query_return(self, fund, date):
+        range_return = 0
+        for delta in range(self.rebalance_period):
+            delta_date = date - timedelta(delta)
+            range_return += self.market.query_return(fund, delta_date)
+        return range_return

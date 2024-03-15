@@ -5,6 +5,8 @@ from src.market import Market
 
 class Analysis:
     def __init__(self, long_portfolio, short_portfolio, benchmark, benchmark_label):
+        self.long_portfolio = long_portfolio
+        self.short_portfolio = short_portfolio
         self.long_portfolio_value = long_portfolio.value_book.get_column("value")
         self.short_portfolio_value = short_portfolio.value_book.get_column("value")
         self.dates = long_portfolio.date_df.get_column("date")
@@ -45,6 +47,32 @@ class Analysis:
         self.ax.grid(True)
         self.ax.legend()
         self.ax.set_title("Portofolio Return Relative to Benchmark")
+        plt.show()
+
+    def draw_turnover(self, turnover):
+        fig, ax = plt.subplots(1, 1)
+        ax.bar(self.dates, turnover)
+        step = self.dates.shape[0] // 30
+        ax.set_xticks(
+            ticks=self.dates[::step],
+            labels=self.dates[::step],
+            rotation=90,
+        )
+        plt.show()
+
+    def draw_hitrate(self, hitrate):
+        pass
+
+    def draw_information_coefficient(self, ie):
+        _, ax = plt.subplots(1, 1)
+        ax.bar(self.dates, ie)
+        step = max(self.dates.shape[0] // 30, 1)
+        ax.set_xticks(
+            ticks=self.dates[::step],
+            labels=self.dates[::step],
+            rotation=90,
+        )
+        ax.set_title("Information Coefficient")
         plt.show()
 
 
