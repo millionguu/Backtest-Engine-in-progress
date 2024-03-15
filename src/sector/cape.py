@@ -32,6 +32,8 @@ class CapeSector(BaseSector):
                 observe_date.year - delta, observe_date.month, observe_date.day
             )
             security_signal_df = self.get_security_signal(history_date)
+            # we don't like negative PE
+            security_signal_df = security_signal_df.filter(pl.col("signal") > 0)
             sector_signal_df = self.get_sector_signal(
                 self.sector_df, security_signal_df
             )
