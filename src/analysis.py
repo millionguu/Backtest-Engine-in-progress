@@ -49,42 +49,16 @@ class Analysis:
         self.ax.set_title("Portofolio Return Relative to Benchmark")
         plt.show()
 
-    def draw_turnover(self, turnover):
-        fig, ax = plt.subplots(1, 1)
-        ax.bar(self.dates, turnover)
-        step = self.dates.shape[0] // 30
-        ax.set_xticks(
-            ticks=self.dates[::step],
-            labels=self.dates[::step],
-            rotation=90,
-        )
-        plt.show()
-
-    def draw_hitrate(self, hitrate):
-        pass
-
-    def draw_information_coefficient(self, ie):
-        _, ax = plt.subplots(1, 1)
-        ax.bar(self.dates, ie)
-        step = max(self.dates.shape[0] // 30, 1)
-        ax.set_xticks(
-            ticks=self.dates[::step],
-            labels=self.dates[::step],
-            rotation=90,
-        )
-        ax.set_title("Information Coefficient")
-        plt.show()
-
 
 class Benchmark:
     def __init__(self, benchmark, start_date, end_date):
         self.benchmark = benchmark
         self.start_date = start_date
         self.end_date = end_date
+        self.market = Market([self.benchmark], self.start_date, self.end_date)
 
     def get_performance(self):
-        market = Market([self.benchmark], self.start_date, self.end_date)
-        df = market.data[self.benchmark]
+        df = self.market.data[self.benchmark]
         df = df.filter(
             (pl.col("date") >= self.start_date) & (pl.col("date") <= self.end_date)
         ).rename({"adj close": "value"})

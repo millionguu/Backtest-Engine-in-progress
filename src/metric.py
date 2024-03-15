@@ -128,9 +128,6 @@ class InformationCoefficient:
         )
         return df
 
-    def get_hit_rate(self):
-        pass
-
     def get_rows(self, date):
         # (date, sector, rank, rebalance_period_return)
         rows = []
@@ -143,6 +140,58 @@ class InformationCoefficient:
                     "sector": fund.sector,
                     "rank": rank,
                     "return": range_return,
+                }
+            )
+        return rows
+
+    def query_return(self, fund, date):
+        range_return = 0
+        for delta in range(self.rebalance_period):
+            delta_date = date - timedelta(delta)
+            range_return += self.market.query_return(fund, delta_date)
+        return range_return
+
+
+class HitRate:
+    def __init__(self, portfolio, factor, market, rebalance_period, benchmark) -> None:
+        self.portofolio = portfolio
+        self.factor = factor
+        self.market = market
+        self.rebalance_period = rebalance_period
+        self.benchmark = benchmark
+        self.market.securities.append(benchmark)
+        self.market.load_ticker_return_data()
+
+    def get_hit_rate(self):
+        total_rows = []
+        for dict in self.portofolio.value_book.select(["date", "index"]).to_dicts():
+            if dict["index"] % self.rebalance_period != 0:
+                continue
+            rows = self.get_rows(dict["date"])
+            total_rows.extend(rows)
+
+        df = pl.from_dicts(total_rows)
+        df = df.group_by("date").agg(
+            (
+                (pl.when(pl.col("return") > 0).then(1).otherwise(0).sum())
+                / (pl.col("return").count())
+            ).alias("hr")
+        )
+        return df
+
+    def get_rows(self, date):
+        # (date, sector, rank, return relative to benchmark)
+        rows = []
+        fund_list = self.factor.get_position(date)
+        fund_list = list(map(lambda t: t[0], fund_list))
+        benchmark_return = self.query_return(self.benchmark, date)
+        for fund in fund_list:
+            range_return = self.query_return(fund, date)
+            rows.append(
+                {
+                    "date": date,
+                    "sector": fund.sector,
+                    "return": range_return - benchmark_return,
                 }
             )
         return rows

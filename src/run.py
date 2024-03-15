@@ -73,3 +73,4 @@ analysis = Analysis(
     "SPX",
 )
 analysis.draw()
+analysis.draw_information_coefficient(ie.get_information_coefficient())
