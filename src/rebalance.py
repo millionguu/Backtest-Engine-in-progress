@@ -55,8 +55,8 @@ class Rebalance:
 
         turnover = sum((map(lambda t: abs(t[1]), position_change)))
         self.portfolio.value_book[iter_index]["turnover"] = turnover
-        sector = ",".join((map(lambda t: t[0].sector, position_change)))
-        self.portfolio.value_book[iter_index]["sector"] = sector
+        # sector = ",".join((map(lambda t: t[0].sector, position_change)))
+        # self.portfolio.value_book[iter_index]["sector"] = sector
 
         for security, weight_change in position_change:
             if weight_change < 0:

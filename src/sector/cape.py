@@ -34,7 +34,7 @@ class CapeSector(BaseSector):
             security_signal_df = self.get_security_signal(history_date)
             # we don't like negative PE
             security_signal_df = security_signal_df.filter(pl.col("signal") > 0)
-            sector_signal_df = self.get_sector_signal(
+            sector_signal_df = self.get_sector_signal_using_harmonic_average(
                 self.sector_df, security_signal_df
             )
             assert len(sector_signal_df) > 0
@@ -46,7 +46,7 @@ class CapeSector(BaseSector):
         assert len(sector_list) > 0
         return sector_list
 
-    def get_sector_signal(
+    def get_sector_signal_using_harmonic_average(
         self, sector_df: pl.DataFrame, signal_df: pl.DataFrame
     ) -> pl.DataFrame:
         """
@@ -74,14 +74,23 @@ class CapeSector(BaseSector):
                 (
                     1
                     / (
-                        (1 / pl.col("signal"))
-                        * (pl.coalesce(pl.col("weight"), 0) / (pl.col("weight")).sum())
-                    ).sum()
+                        (
+                            (1 / pl.col("signal"))
+                            * (
+                                pl.coalesce(pl.col("weight"), 0)
+                                / (pl.col("weight")).sum()
+                            )
+                        ).sum()
+                    )
                 ).alias("weighted_signal"),
                 (((pl.col("signal") * pl.coalesce(pl.col("weight"), 0))).sum()).alias(
                     "weighted_signal_numerator"
                 ),
                 (pl.col("weight").sum()).alias("weighted_signal_denominator"),
+                (
+                    ((pl.col("signal") * pl.coalesce(pl.col("weight"), 0))).sum()
+                    / pl.col("weight").sum()
+                ).alias("weighted_sum_average"),
             )
         )
         # in some cases we don't like negtive value
