@@ -49,6 +49,15 @@ class BaseSector(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_sector_list(self, observe_date):
+        """
+        1. construct sector
+        2. generate sector signal
+        3. sort the sector
+        """
+        pass
+
     def get_sector_signal(
         self, sector_df: pl.DataFrame, signal_df: pl.DataFrame
     ) -> pl.DataFrame:

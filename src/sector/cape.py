@@ -8,7 +8,7 @@ class CapeSector(BaseSector):
     def __init__(self):
         self.eps_quarterly_table = "parquet/cape/us_security_eps_quarterly.parquet"
         self.eps_annually_table = "parquet/cape/us_security_eps_annually.parquet"
-        self.price_table = "parquet/cape/us_security_price_daily.parquet"
+        self.price_table = "parquet/base/us_security_price_daily.parquet"
         self.cpi_table = "parquet/base/us_cpi.parquet"
         self.report_announcement_table = (
             "parquet/cape/us_security_income_report_announcement_date.parquet"

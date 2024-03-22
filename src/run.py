@@ -7,10 +7,10 @@ from src.metric import Metric, InformationCoefficient, HitRate
 from src.rebalance import Rebalance
 from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
-from src.factor.cape import CapeFactor
+from src.factor.fifty_two_week_high import FiftyTwoWeekHighFactor
 from src.fund_universe import SECTOR_ETF_TICKER
 
-start_date = date(2023, 1, 1)
+start_date = date(2013, 1, 1)
 end_date = date(2023, 10, 31)
 security_universe = SECTOR_ETF_TICKER
 rebalance_period = 60
@@ -18,7 +18,7 @@ rebalance_period = 60
 market = Market(security_universe, start_date, end_date)
 
 ### Long factor
-long_factor = CapeFactor(security_universe, "long")
+long_factor = FiftyTwoWeekHighFactor(security_universe, "long")
 long_portfolio = Portfolio(100.0, start_date, end_date)
 long_factor.set_portfolio_at_start(long_portfolio)
 
@@ -33,7 +33,7 @@ backtest.run()
 # print(long_portfolio.value_book)
 
 ### Short factor
-short_factor = CapeFactor(security_universe, "short")
+short_factor = FiftyTwoWeekHighFactor(security_universe, "short")
 short_portfolio = Portfolio(100.0, start_date, end_date)
 short_factor.set_portfolio_at_start(short_portfolio)
 
@@ -45,7 +45,6 @@ rebalance = Rebalance(rebalance_period, short_portfolio, short_factor, blacklist
 backtest = BackTest(short_portfolio, strategy, market, rebalance)
 backtest.run()
 
-# print(short_portfolio.value_book)
 
 ### plot
 benchmark = Benchmark(SecurityTicker("^SPX", "index"), start_date, end_date)
