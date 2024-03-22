@@ -5,7 +5,7 @@ import pandas as pd
 import polars as pl
 import yfinance
 
-from src.security_symbol import SecurityTicker, SecurityLipper
+from src.security_symbol import SecurityTicker, SecurityLipper, SecuritySedol
 
 
 class Market:
@@ -18,6 +18,8 @@ class Market:
             return self.load_ticker_return_data()
         if isinstance(securities[0], SecurityLipper):
             return self.load_lipper_return_data()
+        if isinstance(securities[0], SecuritySedol):
+            return self.load_sedol_return_data()
         raise ValueError("secirity type not supported")
 
     def load_ticker_return_data(self):
@@ -46,6 +48,17 @@ class Market:
             pl.scan_parquet("parquet/fund_return/us_fund_daily_return_lipperid.parquet")
             .filter(pl.col("end_date") >= self.start_date)
             .filter(pl.col("end_date") <= self.end_date)
+            .collect()
+        )
+
+    def load_sedol_return_data(self):
+        # TODO: maybe filter on lipper_id
+        self.data = (
+            pl.scan_parquet(
+                "parquet/fund_return/us_security_sedol_return_daily.parquet"
+            )
+            .filter(pl.col("date") >= self.start_date)
+            .filter(pl.col("date") <= self.end_date)
             .collect()
         )
 
