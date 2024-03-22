@@ -56,7 +56,7 @@ class FiftyTwoWeekHighSector(BaseSector):
         sector_signal_df = self.get_sector_signal(sector_df, security_signal_df)
         assert len(sector_signal_df) > 0
         sector_list = (
-            sector_signal_df.sort("weighted_signal", descending=True)
+            sector_signal_df.sort("simple_avg_signal", descending=True)
             .get_column("sector")
             .to_list()
         )
