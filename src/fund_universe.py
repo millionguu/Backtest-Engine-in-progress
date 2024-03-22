@@ -45,8 +45,8 @@ invesco_sp500_ticker_sector_etf = {
 }
 
 
-SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
-# SECTOR_ETF_TICKER = [
-#     SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
-# ]
+# SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
+SECTOR_ETF_TICKER = [
+    SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
+]
 SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]

@@ -68,3 +68,9 @@ class Benchmark:
             (pl.col("value") / pl.lit(first_day_value) * pl.lit(100)).alias("value"),
         )
         return df
+
+    def query_range_return(self, start_date, end_date):
+        range_return = self.market.query_ticker_range_return(
+            self.benchmark, start_date, end_date
+        )
+        return range_return
