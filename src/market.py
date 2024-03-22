@@ -77,6 +77,18 @@ class Market:
             return self.query_ticker_return(security, date)
         elif isinstance(security, SecurityLipper):
             return self.query_lipper_return(security, date)
+        elif isinstance(security, SecuritySedol):
+            return self.query_sedol_return(security, date)
+        else:
+            raise ValueError(f"unexpected type: {security}")
+
+    def query_range_return(self, security, start_date, end_date):
+        if isinstance(security, SecurityTicker):
+            return self.query_ticker_range_return(security, start_date, end_date)
+        elif isinstance(security, SecurityLipper):
+            return self.query_lipper_range_return(security, start_date, end_date)
+        elif isinstance(security, SecuritySedol):
+            return self.query_sedol_range_return(security, start_date, end_date)
         else:
             raise ValueError(f"unexpected type: {security}")
 
@@ -103,6 +115,50 @@ class Market:
         else:
             # print(f"not found return value for {security} at {date}.")
             return 0
+
+    def query_sedol_return(self, security, date):
+        res = (
+            self.data.filter(pl.col("sedol7") == security.sedol_id)
+            .filter(pl.col("date") == date)
+            .filter(pl.col("return").is_not_null())
+        )
+        if len(res) == 1 and abs(res.get_column("return").item(0)) < 0.5:
+            return res.get_column("return").item(0)
+        else:
+            # print(f"not found return value for {security} at {date}.")
+            return 0
+
+    def query_ticker_range_return(self, security, start_date, end_date):
+        res = (
+            self.data[security]
+            .filter(pl.col("date") >= start_date)
+            .filter(pl.col("date") <= end_date)
+            .filter(pl.col("return").is_not_null())
+            .select(pl.col("return").sum().alias("return"))
+        )
+        if len(res) == 1 and abs(res.get_column("return").item(0)) < 5:
+            return res.get_column("return").item(0)
+        else:
+            # print(f"not found return value for {security} at {date}.")
+            return 0
+
+    def query_sedol_range_return(self, security, start_date, end_date):
+        res = (
+            self.data.filter(pl.col("sedol7") == security.sedol_id)
+            .filter(pl.col("date") >= start_date)
+            .filter(pl.col("date") <= end_date)
+            .filter(pl.col("return").is_not_null())
+            .group_by("sedol7")
+            .agg(pl.col("return").sum().alias("return"))
+        )
+        if len(res) == 1 and abs(res.get_column("return").item(0)) < 5:
+            return res.get_column("return").item(0)
+        else:
+            # print(f"not found return value for {security} at {date}.")
+            return 0
+
+    def query_lipper_range_return(self, security, start_date, end_date):
+        raise ValueError("no implementation")
 
 
 if __name__ == "__main__":
