@@ -18,7 +18,7 @@ cnbc_ticker_sector_etf = {
 
 invesco_sp500_sector_etf = {
     "Consumer Discretionary": "40111945",
-    "Energy": "40205516",  # not from invesco
+    # "Energy": "40205516",  # not from invesco
     "Real Estate": "40212980",
     "Materials": "40111951",
     "Utilities": "40111953",

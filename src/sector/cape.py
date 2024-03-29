@@ -182,7 +182,6 @@ class CapeSector(BaseSector):
             how="inner",
             on="sedol7",
         )
-        # annulize the PE, rather than using quarterly PE
         signal_df = signal_df.with_columns(
             (pl.col("price") / pl.col("avg_eps")).alias("signal")
         )
@@ -396,41 +395,3 @@ class CapeSector(BaseSector):
                 [eps_annual_full_df, eps_annual_part_df], how="vertical"
             )
             return eps_annual_df
-
-    def get_report_announcement_date(self, report_date):
-        # likewise, we only care about those report date in 3/31, 6/30, 9/30, 12/31
-        # we only consider the diff between announcement_date and report_date in range (0, 3] months is reasonable
-        # for those missing data or gap larger than 3 months, we just fix it to be report_date + 3 months
-        announcement_df = (
-            pl.scan_parquet(self.report_announcement_table)
-            .filter(pl.col("report_date") == report_date)
-            .filter(pl.col("announcement_date").is_not_null())
-            .filter(
-                pl.col("announcement_date") - pl.col("report_date")
-                > datetime.timedelta(days=0)
-            )
-            .filter(
-                pl.col("announcement_date") - pl.col("report_date")
-                <= datetime.timedelta(days=93)
-            )
-            .filter(
-                (
-                    (pl.col("report_date").dt.month() == 3)
-                    & (pl.col("report_date").dt.day() == 31)
-                )
-                | (
-                    (pl.col("report_date").dt.month() == 6)
-                    & (pl.col("report_date").dt.day() == 30)
-                )
-                | (
-                    (pl.col("report_date").dt.month() == 9)
-                    & (pl.col("report_date").dt.day() == 30)
-                )
-                | (
-                    (pl.col("report_date").dt.month() == 12)
-                    & (pl.col("report_date").dt.day() == 31)
-                )
-            )
-            .collect()
-        )
-        return announcement_df

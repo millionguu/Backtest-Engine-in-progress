@@ -7,20 +7,20 @@ from src.metric import Metric, InformationCoefficient, HitRate
 from src.rebalance import Rebalance
 from src.strategy import StopGainAndLoss
 from src.backtest import BackTest
-
-# from src.factor.fifty_two_week_high import FiftyTwoWeekHighFactor
+from src.factor.sales_growth import SalesGrowthFactor
+from src.factor.fifty_two_week_high import FiftyTwoWeekHighFactor
 from src.factor.fifty_two_week_high_etf import FiftyTwoWeekHighEtfFactor
-from src.fund_universe import SECTOR_ETF_TICKER
+from src.fund_universe import ISHARE_SECTOR_ETF_TICKER
 
 start_date = date(2013, 1, 1)
 end_date = date(2023, 10, 31)
-security_universe = SECTOR_ETF_TICKER
-rebalance_period = 60
+security_universe = ISHARE_SECTOR_ETF_TICKER
+rebalance_period = 30
 
 market = Market(security_universe, start_date, end_date)
 
 ### Long factor
-long_factor = FiftyTwoWeekHighEtfFactor(security_universe, "long")
+long_factor = SalesGrowthFactor(security_universe, "long")
 long_portfolio = Portfolio(100.0, start_date, end_date)
 long_factor.set_portfolio_at_start(long_portfolio)
 
@@ -35,7 +35,7 @@ backtest.run()
 # print(long_portfolio.value_book)
 
 ### Short factor
-short_factor = FiftyTwoWeekHighEtfFactor(security_universe, "short")
+short_factor = SalesGrowthFactor(security_universe, "short")
 short_portfolio = Portfolio(100.0, start_date, end_date)
 short_factor.set_portfolio_at_start(short_portfolio)
 
