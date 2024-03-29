@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import datetime
 import polars as pl
 
 
@@ -59,7 +60,7 @@ class BaseSector(ABC):
         pass
 
     def get_sector_signal(
-        self, sector_df: pl.DataFrame, signal_df: pl.DataFrame
+        self, sector_df: pl.DataFrame, signal_df: pl.DataFrame, allow_neg_signal=False
     ) -> pl.DataFrame:
         """
         signal on the sector level
@@ -103,7 +104,8 @@ class BaseSector(ABC):
             )
         )
         # in some cases we don't like negtive value
-        assert len(sector_signal_df.filter(pl.col("weighted_signal") < 0)) == 0
+        if not allow_neg_signal:
+            assert len(sector_signal_df.filter(pl.col("weighted_signal") < 0)) == 0
         # we only believe in those weight denominator are greater than 0.5
         sector_signal_df = sector_signal_df.filter(
             pl.col("weighted_signal_denominator") > 0.5
@@ -147,3 +149,41 @@ class BaseSector(ABC):
             merge_df.sort("z-score", descending=True).get_column("sector").to_list()
         )
         return ordered_sector
+
+    def get_report_announcement_date(self, report_date):
+        # we only care about those report date in 3/31, 6/30, 9/30, 12/31
+        # we only consider the diff between announcement_date and report_date in range (0, 3] months is reasonable
+        # for those missing data or gap larger than 3 months, we just fix it to be report_date + 3 months
+        announcement_df = (
+            pl.scan_parquet(self.report_announcement_table)
+            .filter(pl.col("report_date") == report_date)
+            .filter(pl.col("announcement_date").is_not_null())
+            .filter(
+                pl.col("announcement_date") - pl.col("report_date")
+                > datetime.timedelta(days=0)
+            )
+            .filter(
+                pl.col("announcement_date") - pl.col("report_date")
+                <= datetime.timedelta(days=93)
+            )
+            .filter(
+                (
+                    (pl.col("report_date").dt.month() == 3)
+                    & (pl.col("report_date").dt.day() == 31)
+                )
+                | (
+                    (pl.col("report_date").dt.month() == 6)
+                    & (pl.col("report_date").dt.day() == 30)
+                )
+                | (
+                    (pl.col("report_date").dt.month() == 9)
+                    & (pl.col("report_date").dt.day() == 30)
+                )
+                | (
+                    (pl.col("report_date").dt.month() == 12)
+                    & (pl.col("report_date").dt.day() == 31)
+                )
+            )
+            .collect()
+        )
+        return announcement_df

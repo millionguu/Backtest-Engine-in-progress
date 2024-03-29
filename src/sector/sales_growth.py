@@ -1,4 +1,4 @@
-from datetime import timedelta
+import datetime
 import polars as pl
 
 from src.sector.base_sector import BaseSector
@@ -6,8 +6,8 @@ from src.sector.base_sector import BaseSector
 
 class SalesGrowthSector(BaseSector):
     def __init__(self, category="ntm") -> None:
-        # hyper parameter: generate z-score using data in the last n months
-        self.z_score_month_range = 12
+        # hyper parameter: generate z-score using data in the last n years
+        self.z_score_year_range = 10
         # category of sales growth, could be {fy1|ttm|ntm}
         self.table = f"us_sales_growth_{category}.parquet"
         self.sector_df = self.get_sector_construction()
@@ -21,15 +21,18 @@ class SalesGrowthSector(BaseSector):
         3. sort the sector by z-score
         """
         total_df_list = []
-        for delta in range(self.z_score_month_range):
-            # note that 30 should be the rebalance period
-            date = observe_date - timedelta(days=delta * 30)
+        for delta in range(self.z_score_year_range):
+            date = datetime.date(
+                observe_date.year - delta, observe_date.month, observe_date.day
+            )
             cache_key = (date.year, date.month)
             if cache_key in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache[cache_key]
             else:
                 signal_df = self.get_security_signal(date)
-                sector_signal_df = self.get_sector_signal(self.sector_df, signal_df)
+                sector_signal_df = self.get_sector_signal(
+                    self.sector_df, signal_df, True
+                )
                 self.sector_signal_cache[cache_key] = sector_signal_df
             total_df_list.append(sector_signal_df)
         total_signal_df = pl.concat(total_df_list)
@@ -37,19 +40,19 @@ class SalesGrowthSector(BaseSector):
         return sector_list
 
     def get_security_signal(self, date):
-        # TODO: adjust based on annocement date
-        lastest_date = (
-            pl.scan_parquet(f"parquet/sales_growth/{self.table}")
-            .filter(pl.col("date") <= date)
-            .select(pl.col("date").max())
-            .collect()
-            .get_column("date")
-            .item(0)
+        last_month = (
+            datetime.date(date.year, date.month - 1, 1)
+            if date.month > 1
+            else datetime.date(date.year - 1, 12, 1)
         )
         signal_df = (
             pl.scan_parquet(f"parquet/sales_growth/{self.table}")
-            .filter(pl.col("date") == lastest_date)
+            .filter(pl.col("growth").is_not_null())
+            .filter(pl.col("date").dt.year() == last_month.year)
+            .filter(pl.col("date").dt.month() == last_month.month)
             .collect()
         )
+        # rewrite the date column to unify the date in the same month
+        signal_df = signal_df.with_columns(pl.lit(last_month).alias("date"))
         signal_df = signal_df.rename({"growth": "signal"})
         return signal_df
