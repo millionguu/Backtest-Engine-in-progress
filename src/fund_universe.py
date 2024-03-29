@@ -32,7 +32,7 @@ invesco_sp500_sector_etf = {
 
 invesco_sp500_ticker_sector_etf = {
     "Consumer Discretionary": "RSPD",
-    "Energy": "ENFR",  # not from invesco
+    # "Energy": "ENFR",  # not from invesco
     "Real Estate": "RSPR",
     "Materials": "RSPM",
     "Utilities": "RSPU",
@@ -44,9 +44,30 @@ invesco_sp500_ticker_sector_etf = {
     "Financials": "RSPF",
 }
 
+ishare_ticker_sector_etf = {
+    "Consumer Discretionary": "IYC",
+    # "Energy": "ENFR",  # not from invesco
+    "Real Estate": "IYR",
+    "Materials": "IYM",
+    "Utilities": "IDU",
+    "Information Technology": "IYW",
+    "Communication Services": "IYZ",
+    "Health Care": "IYH",
+    "Industrials": "IYJ",
+    "Consumer Staples": "IYK",
+    "Financials": "IYF",
+}
 
-# SECTOR_ETF_TICKER = [SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()]
-SECTOR_ETF_TICKER = [
+INVESCO_SECTOR_ETF_LIPPER = [
+    SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()
+]
+
+ISHARE_SECTOR_ETF_TICKER = [
+    SecurityTicker(v, k) for k, v in ishare_ticker_sector_etf.items()
+]
+CNBC_SECTOR_ETF_TICKER = [
+    SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()
+]
+INVESCO_SECTOR_ETF_TICKER = [
     SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
 ]
-SECTOR_ETF_LIPPER = [SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()]
