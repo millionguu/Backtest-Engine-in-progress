@@ -1,16 +1,54 @@
 class Rebalance:
     def __init__(
-        self, period, portfolio, factor, blacklist, disable_rebalance=False
+        self,
+        period,
+        portfolio,
+        factor,
+        blacklist,
+        interval="1d",
+        disable_rebalance=False,
     ) -> None:
         self.period = period
         self.portfolio = portfolio
         self.factor = factor
         self.blacklist = blacklist
+        # could be "1d" or "1mo"
+        # if "1mon", then rebalance happens at the last market open day of the month
+        self.interval = interval
         self.disable_rebalance = disable_rebalance
 
-    def run(self, iter_index):
+    def check_and_run(self, iter_index, prev_rebalance_index):
         if self.disable_rebalance:
-            return
+            return False
+        if iter_index + 1 >= len(self.portfolio.date_df):
+            return False
+
+        if self.interval == "1d":
+            if iter_index % self.period == 0:
+                self.run(iter_index)
+                return True
+            else:
+                return False
+        elif self.interval == "1mo":
+            prev_rebalance_date = self.portfolio.date_df.item(prev_rebalance_index, 0)
+            cur_date = self.portfolio.date_df.item(iter_index, 0)
+            next_date = self.portfolio.date_df.item(iter_index + 1, 0)
+            if self.interval == "1mo" and cur_date.month == next_date.month:
+                return False
+            diff = (
+                cur_date.month - prev_rebalance_date.month
+                if cur_date.year == prev_rebalance_date.year
+                else cur_date.month + 12 - prev_rebalance_date.month
+            )
+            if self.interval == "1mo" and diff == self.period:
+                self.run(iter_index)
+                return True
+            else:
+                return False
+        else:
+            raise ValueError(f"no implementation for {self.interval}")
+
+    def run(self, iter_index):
         cur_date = self.portfolio.date_df.item(iter_index, 0)
         position = self.factor.get_position(cur_date)
 

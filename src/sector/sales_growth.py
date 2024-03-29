@@ -21,6 +21,8 @@ class SalesGrowthSector(BaseSector):
         3. sort the sector by z-score
         """
         total_df_list = []
+        if observe_date.month == 2 and observe_date.day == 29:
+            observe_date = datetime.date(observe_date.year, 2, 28)
         for delta in range(self.z_score_year_range):
             date = datetime.date(
                 observe_date.year - delta, observe_date.month, observe_date.day

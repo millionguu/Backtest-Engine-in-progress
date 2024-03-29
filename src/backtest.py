@@ -51,6 +51,5 @@ class BackTest:
                 pass
 
         # apply rebalance
-        if self.iter_index % self.rebalance.period == 0:
-            self.rebalance.run(self.iter_index)
+        if self.rebalance.check_and_run(self.iter_index, self.prev_rebalance_index):
             self.prev_rebalance_index = self.iter_index
