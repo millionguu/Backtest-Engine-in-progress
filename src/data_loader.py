@@ -262,33 +262,46 @@ def write_income_report_date():
 
 
 def write_roe_data():
-    file_name = "ROE NTM_MSCI USA_20001231-20231130.xlsx"
-    table = "us_security_roe_monthly"
-    data = pl.read_excel(f"data/{file_name}")
-    data = data.rename({"": "company", "SEDOL7": "sedol7"})
-    data = data.melt(
-        id_vars=["sedol7", "company"], variable_name="date", value_name="roe"
-    )
-    data = data.with_columns(
-        pl.col("date").str.to_date("%Y%m%d"),
-        pl.col("roe").cast(pl.Float32, strict=False),
-    )
-    data.write_parquet(f"parquet/roe/{table}.parquet")
+    file_names = [
+        "ROE NTM_MSCI USA_20001231-20231130.xlsx",
+        "ROE FY1_MSCI USA_20001231-20231130.xlsx",
+    ]
+    tables = ["us_security_roe_ntm_monthly", "us_security_roe_fy1_monthly"]
+    for file_name, table in zip(file_names, tables):
+        data = pl.read_excel(f"data/{file_name}")
+        data = data.rename({"": "company", "SEDOL7": "sedol7"})
+        data = data.melt(
+            id_vars=["sedol7", "company"], variable_name="date", value_name="roe"
+        )
+        data = data.with_columns(
+            pl.col("date").str.to_date("%Y%m%d"),
+            pl.col("roe").cast(pl.Float32, strict=False),
+        )
+        data.write_parquet(f"parquet/roe/{table}.parquet")
 
 
 def write_dividend_yield_data():
-    file_name = "NTM Dividend Yield_MSCI USA_20001231-20231130.xlsx"
-    table = "us_security_dividend_yield_monthly"
-    data = pl.read_excel(f"data/{file_name}")
-    data = data.rename({"": "company", "SEDOL7": "sedol7"})
-    data = data.melt(
-        id_vars=["sedol7", "company"], variable_name="date", value_name="dividend_yield"
-    )
-    data = data.with_columns(
-        pl.col("date").str.to_date("%Y%m%d"),
-        pl.col("dividend_yield").cast(pl.Float32, strict=False),
-    )
-    data.write_parquet(f"parquet/dividend_yield/{table}.parquet")
+    file_names = [
+        "NTM Dividend Yield_MSCI USA_20001231-20231130.xlsx",
+        "12M Dividend Yield_MSCI USA_20001231-20231130.xlsx",
+    ]
+    tables = [
+        "us_security_dividend_yield_ntm_monthly",
+        "us_security_dividend_yield_fy1_monthly",
+    ]
+    for file_name, table in zip(file_names, tables):
+        data = pl.read_excel(f"data/{file_name}")
+        data = data.rename({"": "company", "SEDOL7": "sedol7"})
+        data = data.melt(
+            id_vars=["sedol7", "company"],
+            variable_name="date",
+            value_name="dividend_yield",
+        )
+        data = data.with_columns(
+            pl.col("date").str.to_date("%Y%m%d"),
+            pl.col("dividend_yield").cast(pl.Float32, strict=False),
+        )
+        data.write_parquet(f"parquet/dividend_yield/{table}.parquet")
 
 
 if __name__ == "__main__":

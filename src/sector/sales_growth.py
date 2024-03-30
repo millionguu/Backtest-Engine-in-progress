@@ -8,8 +8,8 @@ class SalesGrowthSector(BaseSector):
     def __init__(self, category="ntm") -> None:
         # hyper parameter: generate z-score using data in the last n years
         self.z_score_year_range = 10
-        # category of sales growth, could be {fy1|ttm|ntm}
-        self.table = f"us_sales_growth_{category}.parquet"
+        # category could be {ntm|fy1|ttm}
+        self.table = f"parquet/sales_growth/us_sales_growth_{category}.parquet"
         self.sector_df = self.get_sector_construction()
         # key is (year, month)
         self.sector_signal_cache = {}
@@ -48,7 +48,7 @@ class SalesGrowthSector(BaseSector):
             else datetime.date(date.year - 1, 12, 1)
         )
         signal_df = (
-            pl.scan_parquet(f"parquet/sales_growth/{self.table}")
+            pl.scan_parquet(self.table)
             .filter(pl.col("growth").is_not_null())
             .filter(pl.col("date").dt.year() == last_month.year)
             .filter(pl.col("date").dt.month() == last_month.month)

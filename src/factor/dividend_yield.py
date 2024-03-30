@@ -11,7 +11,7 @@ class DividendYieldFactor(BaseFactor):
         1. get the sorted sector based on the signal
         2. sort the fund by sector order
         """
-        sector_list = list(DividendYieldSector().get_sector_list(date))
+        sector_list = list(DividendYieldSector("ntm").get_sector_list(date))
         fund_list = []
         for sector in sector_list:
             for security in self.security_universe:

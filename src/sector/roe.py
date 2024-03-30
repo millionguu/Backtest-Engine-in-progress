@@ -5,10 +5,11 @@ from src.sector.base_sector import BaseSector
 
 
 class RoeSector(BaseSector):
-    def __init__(self) -> None:
+    def __init__(self, category="ntm") -> None:
         # hyper parameter: generate z-score using data in the last n years
         self.z_score_year_range = 10
-        self.table = "parquet/roe/us_security_roe_monthly.parquet"
+        # category could be {ntm|fy1}
+        self.table = f"parquet/roe/us_security_roe_{category}_monthly.parquet"
         self.sector_df = self.get_sector_construction()
         # key is (year, month)
         self.sector_signal_cache = {}
