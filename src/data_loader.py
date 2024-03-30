@@ -261,5 +261,35 @@ def write_income_report_date():
     data.write_parquet(f"parquet/cape/{table}.parquet")
 
 
+def write_roe_data():
+    file_name = "ROE NTM_MSCI USA_20001231-20231130.xlsx"
+    table = "us_security_roe_monthly"
+    data = pl.read_excel(f"data/{file_name}")
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], variable_name="date", value_name="roe"
+    )
+    data = data.with_columns(
+        pl.col("date").str.to_date("%Y%m%d"),
+        pl.col("roe").cast(pl.Float32, strict=False),
+    )
+    data.write_parquet(f"parquet/roe/{table}.parquet")
+
+
+def write_dividend_yield_data():
+    file_name = "NTM Dividend Yield_MSCI USA_20001231-20231130.xlsx"
+    table = "us_security_dividend_yield_monthly"
+    data = pl.read_excel(f"data/{file_name}")
+    data = data.rename({"": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"], variable_name="date", value_name="dividend_yield"
+    )
+    data = data.with_columns(
+        pl.col("date").str.to_date("%Y%m%d"),
+        pl.col("dividend_yield").cast(pl.Float32, strict=False),
+    )
+    data.write_parquet(f"parquet/dividend_yield/{table}.parquet")
+
+
 if __name__ == "__main__":
-    write_cape_us_sedol_return_data()
+    write_dividend_yield_data()
