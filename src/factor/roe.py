@@ -11,7 +11,7 @@ class RoeFactor(BaseFactor):
         1. get the sorted sector based on the signal
         2. sort the fund by sector order
         """
-        sector_list = list(RoeSector("fy1").get_sector_list(date))
+        sector_list = list(RoeSector("ntm").get_sector_list(date))
         fund_list = []
         for sector in sector_list:
             for security in self.security_universe:

@@ -42,19 +42,15 @@ class RoeSector(BaseSector):
         return sector_list
 
     def get_security_signal(self, date):
-        last_month = (
-            datetime.date(date.year, date.month - 1, 1)
-            if date.month > 1
-            else datetime.date(date.year - 1, 12, 1)
-        )
+        cur_month = datetime.date(date.year, date.month, 1)
         signal_df = (
             pl.scan_parquet(self.table)
             .filter(pl.col("roe").is_not_null())
-            .filter(pl.col("date").dt.year() == last_month.year)
-            .filter(pl.col("date").dt.month() == last_month.month)
+            .filter(pl.col("date").dt.year() == date.year)
+            .filter(pl.col("date").dt.month() == date.month)
             .collect()
         )
         # rewrite the date column to unify the date in the same month
-        signal_df = signal_df.with_columns(pl.lit(last_month).alias("date"))
+        signal_df = signal_df.with_columns(pl.lit(cur_month).alias("date"))
         signal_df = signal_df.rename({"roe": "signal"})
         return signal_df
