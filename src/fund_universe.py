@@ -1,21 +1,6 @@
 from src.security_symbol import SecurityTicker, SecurityLipper
 
 
-# source: https://www.cnbc.com/sector-etfs/
-cnbc_ticker_sector_etf = {
-    "Consumer Discretionary": "XLY",
-    "Energy": "XLE",
-    "Real Estate": "VNQ",
-    "Materials": "XLB",
-    "Utilities": "XLU",
-    "Information Technology": "XLK",
-    "Communication Services": "XTL",
-    "Health Care": "XLV",
-    "Industrials": "XLI",
-    "Consumer Staples": "XLP",
-    "Financials": "XLF",
-}
-
 invesco_sp500_sector_etf = {
     "Consumer Discretionary": "40111945",
     # "Energy": "40205516",  # not from invesco
@@ -62,12 +47,12 @@ INVESCO_SECTOR_ETF_LIPPER = [
     SecurityLipper(v, k) for k, v in invesco_sp500_sector_etf.items()
 ]
 
+# market weight ETF
 ISHARE_SECTOR_ETF_TICKER = [
     SecurityTicker(v, k) for k, v in ishare_ticker_sector_etf.items()
 ]
-CNBC_SECTOR_ETF_TICKER = [
-    SecurityTicker(v, k) for k, v in cnbc_ticker_sector_etf.items()
-]
+
+# equal weight ETF
 INVESCO_SECTOR_ETF_TICKER = [
     SecurityTicker(v, k) for k, v in invesco_sp500_ticker_sector_etf.items()
 ]
