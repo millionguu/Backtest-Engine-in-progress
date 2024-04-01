@@ -27,6 +27,8 @@ class CapeSector(BaseSector):
             10 if observe_date.year > 2010 else observe_date.year - 2001
         )
         total_df_list = []
+        if observe_date.month == 2 and observe_date.day == 29:
+            observe_date = datetime.date(observe_date.year, 2, 28)
         for delta in range(z_score_year_range):
             history_date = datetime.date(
                 observe_date.year - delta, observe_date.month, observe_date.day

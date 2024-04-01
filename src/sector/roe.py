@@ -4,12 +4,12 @@ import polars as pl
 from src.sector.base_sector import BaseSector
 
 
-class SalesGrowthSector(BaseSector):
+class RoeSector(BaseSector):
     def __init__(self, category="ntm") -> None:
         # hyper parameter: generate z-score using data in the last n years
         self.z_score_year_range = 10
-        # category could be {ntm|fy1|ttm}
-        self.table = f"parquet/sales_growth/us_sales_growth_{category}.parquet"
+        # category could be {ntm|fy1}
+        self.table = f"parquet/roe/us_security_roe_{category}_monthly.parquet"
         self.sector_df = self.get_sector_construction()
         # key is (year, month)
         self.sector_signal_cache = {}
@@ -45,12 +45,12 @@ class SalesGrowthSector(BaseSector):
         cur_month = datetime.date(date.year, date.month, 1)
         signal_df = (
             pl.scan_parquet(self.table)
-            .filter(pl.col("growth").is_not_null())
+            .filter(pl.col("roe").is_not_null())
             .filter(pl.col("date").dt.year() == date.year)
             .filter(pl.col("date").dt.month() == date.month)
             .collect()
         )
         # rewrite the date column to unify the date in the same month
         signal_df = signal_df.with_columns(pl.lit(cur_month).alias("date"))
-        signal_df = signal_df.rename({"growth": "signal"})
+        signal_df = signal_df.rename({"roe": "signal"})
         return signal_df
