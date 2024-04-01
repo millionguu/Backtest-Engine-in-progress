@@ -8,6 +8,8 @@ class FiftyTwoWeekHighSector(BaseSector):
         self.price_table = "parquet/base/us_security_price_daily.parquet"
 
     def get_security_signal(self, date):
+        if date.month == 2 and date.day == 29:
+            date = datetime.date(date.year, 2, 28)
         one_year_ago = datetime.date(
             date.year - 1, date.month, date.day
         ) - datetime.timedelta(days=7)

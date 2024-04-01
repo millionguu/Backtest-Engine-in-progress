@@ -22,6 +22,10 @@ class BaseFactor(ABC):
             target_security = security_list[: self.num]
         elif self.factor_type == "short":
             target_security = list(reversed(security_list))[: self.num]
+        elif self.factor_type == "mid":
+            target_security = list(reversed(security_list))[
+                self.num + 1 : self.num + 1 + self.num
+            ]
         else:
             raise ValueError(f"no implementation for {self.factor_type}")
         weight = 1 / len(target_security)

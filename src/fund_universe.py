@@ -3,7 +3,7 @@ from src.security_symbol import SecurityTicker, SecurityLipper
 
 invesco_sp500_sector_etf = {
     "Consumer Discretionary": "40111945",
-    # "Energy": "40205516",  # not from invesco
+    # "Energy": "",
     "Real Estate": "40212980",
     "Materials": "40111951",
     "Utilities": "40111953",
@@ -17,7 +17,7 @@ invesco_sp500_sector_etf = {
 
 invesco_sp500_ticker_sector_etf = {
     "Consumer Discretionary": "RSPD",
-    # "Energy": "ENFR",  # not from invesco
+    "Energy": "RSPG",
     "Real Estate": "RSPR",
     "Materials": "RSPM",
     "Utilities": "RSPU",
@@ -31,7 +31,7 @@ invesco_sp500_ticker_sector_etf = {
 
 ishare_ticker_sector_etf = {
     "Consumer Discretionary": "IYC",
-    # "Energy": "ENFR",  # not from invesco
+    "Energy": "IYE",
     "Real Estate": "IYR",
     "Materials": "IYM",
     "Utilities": "IDU",
