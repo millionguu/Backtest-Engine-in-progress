@@ -1,5 +1,5 @@
-import polars as pl
 import matplotlib.pyplot as plt
+import polars as pl
 
 
 class Analysis:

@@ -1,4 +1,5 @@
 import polars as pl
+
 from src.market import Market
 
 

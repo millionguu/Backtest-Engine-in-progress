@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 
 class OrderType(Enum):

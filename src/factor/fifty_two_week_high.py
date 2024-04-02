@@ -1,5 +1,5 @@
-from src.sector.fifty_two_week_high import FiftyTwoWeekHighSector
 from src.factor.base_factor import BaseFactor
+from src.sector.fifty_two_week_high import FiftyTwoWeekHighSector
 
 
 class FiftyTwoWeekHighFactor(BaseFactor):

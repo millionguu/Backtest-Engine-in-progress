@@ -1,5 +1,7 @@
 import datetime
+
 import polars as pl
+
 from src.sector.base_sector import BaseSector
 
 

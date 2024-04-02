@@ -1,5 +1,4 @@
-from src.security_symbol import SecurityTicker, SecurityLipper
-
+from src.security_symbol import SecurityLipper, SecurityTicker
 
 invesco_sp500_sector_etf = {
     "Consumer Discretionary": "40111945",
