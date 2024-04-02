@@ -1,4 +1,5 @@
 import datetime
+
 import polars as pl
 
 from src.sector.base_sector import BaseSector
@@ -192,7 +193,6 @@ class CapeSector(BaseSector):
         return signal_df
 
     def get_eps_construction(self, date):
-
         eps_quarter_df = self.get_eps_quarter_df(date)
 
         # de-duplicate

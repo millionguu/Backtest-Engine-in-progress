@@ -1,5 +1,5 @@
-from src.sector.fifty_two_week_high_etf import FiftyTwoWeekHighEtfSector
 from src.factor.base_factor import BaseFactor
+from src.sector.fifty_two_week_high_etf import FiftyTwoWeekHighEtfSector
 
 
 class FiftyTwoWeekHighEtfFactor(BaseFactor):

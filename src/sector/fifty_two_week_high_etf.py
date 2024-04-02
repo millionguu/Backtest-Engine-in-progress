@@ -1,7 +1,9 @@
 import datetime
+
 import polars as pl
-from src.security_symbol import SecurityTicker
+
 from src.sector.base_sector import BaseSector
+from src.security_symbol import SecurityTicker
 
 
 class FiftyTwoWeekHighEtfSector(BaseSector):
