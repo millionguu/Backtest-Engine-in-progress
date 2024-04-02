@@ -193,7 +193,6 @@ class CapeSector(BaseSector):
         return signal_df
 
     def get_eps_construction(self, date):
-
         eps_quarter_df = self.get_eps_quarter_df(date)
 
         # de-duplicate

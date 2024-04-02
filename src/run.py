@@ -9,8 +9,7 @@ from src.factor.fifty_two_week_high import FiftyTwoWeekHighFactor
 from src.factor.fifty_two_week_high_etf import FiftyTwoWeekHighEtfFactor
 from src.factor.roe import RoeFactor
 from src.factor.sales_growth import SalesGrowthFactor
-from src.fund_universe import (INVESCO_SECTOR_ETF_TICKER,
-                               ISHARE_SECTOR_ETF_TICKER)
+from src.fund_universe import INVESCO_SECTOR_ETF_TICKER, ISHARE_SECTOR_ETF_TICKER
 from src.market import Market
 from src.metric import HitRate, InformationCoefficient, Metric
 from src.portfolio import Portfolio
