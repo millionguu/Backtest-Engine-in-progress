@@ -4,10 +4,11 @@ version = "0.1.0"
 description = "us fund sector rotation"
 authors = ["Yifei"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
-polars = "^0.20.18"
+polars = {extras = ["xlsx2csv"], version = "^0.20.18"}
 numpy = "^1.26.4"
 matplotlib = "^3.8.3"
 yfinance = "^0.2.37"
