@@ -9,6 +9,7 @@ from src.factor.fifty_two_week_high import FiftyTwoWeekHighFactor
 from src.factor.fifty_two_week_high_etf import FiftyTwoWeekHighEtfFactor
 from src.factor.roe import RoeFactor
 from src.factor.sales_growth import SalesGrowthFactor
+from src.factor.volume import VolumeFactor
 from src.fund_universe import INVESCO_SECTOR_ETF_TICKER, ISHARE_SECTOR_ETF_TICKER
 from src.market import Market
 from src.metric import HitRate, InformationCoefficient, Metric
@@ -18,12 +19,12 @@ from src.security_symbol import SecurityTicker
 from src.strategy import StopGainAndLoss
 
 # Setting
-start_date = datetime.date(2018, 1, 1)
-end_date = datetime.date(2020, 10, 31)
+start_date = datetime.date(2013, 1, 31)
+end_date = datetime.date(2023, 10, 31)
 security_universe = INVESCO_SECTOR_ETF_TICKER
 rebalance_period = 1
 rebalance_interval = "1mo"
-Factor = RoeFactor
+Factor = VolumeFactor
 index_ticker = "^SPXEW" if security_universe == INVESCO_SECTOR_ETF_TICKER else "^SPX"
 benchmark = Benchmark(SecurityTicker(index_ticker, "index"), start_date, end_date)
 market = Market(security_universe, start_date, end_date)

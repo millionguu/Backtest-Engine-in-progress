@@ -305,5 +305,24 @@ def write_dividend_yield_data():
         data.write_parquet(f"parquet/dividend_yield/{table}.parquet")
 
 
+def write_volume_data():
+    file_name = "Volume.xlsx"
+    table = "us_security_volume_daily"
+    data = pl.read_excel(
+        f"data/{file_name}", read_options={"infer_schema_length": 5000}
+    )
+    data = data.rename({"Name": "company", "SEDOL7": "sedol7"})
+    data = data.melt(
+        id_vars=["sedol7", "company"],
+        variable_name="date",
+        value_name="volume",
+    )
+    data = data.with_columns(
+        pl.col("date").str.to_date("%Y%m%d", strict=False),
+        pl.col("volume").cast(pl.Float32, strict=False),
+    ).filter(pl.col("date").is_not_null())
+    data.write_parquet(f"parquet/volume/{table}.parquet")
+
+
 if __name__ == "__main__":
-    write_dividend_yield_data()
+    write_volume_data()

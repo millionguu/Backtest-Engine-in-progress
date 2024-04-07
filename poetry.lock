@@ -2201,6 +2201,9 @@ files = [
     {file = "polars-0.20.18.tar.gz", hash = "sha256:8a321cbdbb459e3c0cc1af2ce6ac930d0d3b5ccbeb2dd3e4237ad07d487fd290"},
 ]
 
+[package.dependencies]
+xlsx2csv = {version = ">=0.8.0", optional = true, markers = "extra == \"xlsx2csv\""}
+
 [package.extras]
 adbc = ["adbc-driver-manager", "adbc-driver-sqlite"]
 all = ["polars[adbc,async,cloudpickle,connectorx,deltalake,fastexcel,fsspec,gevent,numpy,pandas,plot,pyarrow,pydantic,pyiceberg,sqlalchemy,timezone,xlsx2csv,xlsxwriter]"]
@@ -3068,6 +3071,16 @@ optional = ["python-socks", "wsaccel"]
 test = ["websockets"]
 
 [[package]]
+name = "xlsx2csv"
+version = "0.8.2"
+description = "xlsx to csv converter"
+optional = false
+python-versions = "*"
+files = [
+    {file = "xlsx2csv-0.8.2.tar.gz", hash = "sha256:cdd272c82f8b32f1cee76aeaef87b2ee3549661fddf90f7ecf2310967a16fc84"},
+]
+
+[[package]]
 name = "yfinance"
 version = "0.2.37"
 description = "Download market data from Yahoo! Finance API"
@@ -3098,4 +3111,4 @@ repair = ["scipy (>=1.6.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d16139a1f7bcf59c06ed60869518d44456a458d7f8bcd78ba639e4fa716f9cfa"
+content-hash = "cd6f8fa3863094faa21fdcae7c46e79cf24d3be58cef73ef734d133bc4681729"
