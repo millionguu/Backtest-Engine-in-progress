@@ -12,6 +12,8 @@ class CapeFactor(BaseFactor):
         2. sort the fund by sector order
         """
         sector_list = list(CapeSector().get_sector_list(date))
+        # less PE is better, thus we reverse the order
+        sector_list = list(reversed(sector_list))
         fund_list = []
         for sector in sector_list:
             for security in self.security_universe:
