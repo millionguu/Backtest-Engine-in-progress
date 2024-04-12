@@ -41,26 +41,35 @@ class BaseSector(ABC):
         return sector_weight_df
 
     @abstractmethod
-    def get_security_signal(self, date):
+    def impl_security_signal(self, date):
         """
         signal on the security level
-
         should have a column named signal
-
-        aggregate on security's history data to get the sinal
+        aggregate on security's history data to get the signal
         """
         pass
 
     @abstractmethod
-    def get_sector_list(self, observe_date):
+    def impl_sector_signal(self, observe_date):
         """
-        1. construct sector
-        2. generate sector signal
-        3. sort the sector
+        signal on the sector level
+        should have a column named signal
+        aggregate on security's level to get the signal
         """
         pass
 
-    def get_sector_signal(
+    def get_sector_list(self, observe_date, z_score=True):
+        """
+        call get_sector_signal
+        sort the sector in descending order
+        """
+        z_score_df = self.impl_sector_signal(observe_date)
+        ordered_sector = (
+            z_score_df.sort("z-score", descending=True).get_column("sector").to_list()
+        )
+        return ordered_sector
+
+    def agg_to_sector_signal(
         self, sector_df: pl.DataFrame, signal_df: pl.DataFrame, allow_neg_signal=False
     ) -> pl.DataFrame:
         """
@@ -113,7 +122,7 @@ class BaseSector(ABC):
         )
         return sector_signal_df
 
-    def sort_sector_using_z_score(self, total_signal_df):
+    def get_sector_z_score(self, total_signal_df):
         """
         sort weighted signal in descending order
         """
@@ -145,11 +154,7 @@ class BaseSector(ABC):
                 "z-score"
             )
         )
-        # print(merge)
-        ordered_sector = (
-            merge_df.sort("z-score", descending=True).get_column("sector").to_list()
-        )
-        return ordered_sector
+        return merge_df
 
     def get_report_announcement_date(self, report_date):
         # we only care about those report date in 3/31, 6/30, 9/30, 12/31
