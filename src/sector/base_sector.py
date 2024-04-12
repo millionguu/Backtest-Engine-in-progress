@@ -58,9 +58,9 @@ class BaseSector(ABC):
         """
         pass
 
-    def get_sector_list(self, observe_date, z_score=True):
+    def get_sector_list(self, observe_date):
         """
-        call get_sector_signal
+        call get_sector_signal, should have fields named z-score and sector
         sort the sector in descending order
         """
         z_score_df = self.impl_sector_signal(observe_date)
