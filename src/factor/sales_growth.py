@@ -12,6 +12,8 @@ class SalesGrowthFactor(BaseFactor):
         2. sort the fund by sector order
         """
         sector_list = list(SalesGrowthSector("ntm").get_sector_list(date))
+        # for some reason, it's a reversed signal
+        sector_list = list(reversed(sector_list))
         fund_list = []
         for sector in sector_list:
             for security in self.security_universe:

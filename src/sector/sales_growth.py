@@ -15,7 +15,7 @@ class SalesGrowthSector(BaseSector):
         # key is (year, month)
         self.sector_signal_cache = {}
 
-    def get_sector_list(self, observe_date):
+    def impl_sector_signal(self, observe_date):
         """
         1. construct sector
         2. generate sector signal
@@ -32,17 +32,17 @@ class SalesGrowthSector(BaseSector):
             if cache_key in self.sector_signal_cache:
                 sector_signal_df = self.sector_signal_cache[cache_key]
             else:
-                signal_df = self.get_security_signal(date)
-                sector_signal_df = self.get_sector_signal(
-                    self.sector_df, signal_df, True
+                security_signal_df = self.impl_security_signal(date)
+                sector_signal_df = self.agg_to_sector_signal(
+                    self.sector_df, security_signal_df, True
                 )
                 self.sector_signal_cache[cache_key] = sector_signal_df
             total_df_list.append(sector_signal_df)
         total_signal_df = pl.concat(total_df_list)
-        sector_list = self.sort_sector_using_z_score(total_signal_df)
-        return sector_list
+        z_score_df = self.get_sector_z_score(total_signal_df)
+        return z_score_df
 
-    def get_security_signal(self, date):
+    def impl_security_signal(self, date):
         cur_month = datetime.date(date.year, date.month, 1)
         signal_df = (
             pl.scan_parquet(self.table)

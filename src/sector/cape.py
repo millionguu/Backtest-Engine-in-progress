@@ -16,7 +16,7 @@ class CapeSector(BaseSector):
         )
         self.sector_df = self.get_sector_construction()
 
-    def get_sector_list(self, observe_date):
+    def impl_sector_signal(self, observe_date):
         """
         1. construct sector securities and weight
         2. aggregate history data and calulate security signal
@@ -34,22 +34,19 @@ class CapeSector(BaseSector):
             history_date = datetime.date(
                 observe_date.year - delta, observe_date.month, observe_date.day
             )
-            security_signal_df = self.get_security_signal(history_date)
+            security_signal_df = self.impl_security_signal(history_date)
             # we don't like negative PE
             security_signal_df = security_signal_df.filter(pl.col("signal") > 0)
-            sector_signal_df = self.get_sector_signal_using_harmonic_average(
+            sector_signal_df = self.agg_to_sector_signal_harmonic_average(
                 self.sector_df, security_signal_df
             )
             assert len(sector_signal_df) > 0
             total_df_list.append(sector_signal_df)
         total_signal_df = pl.concat(total_df_list)
-        sector_list = self.sort_sector_using_z_score(total_signal_df)
-        # less PE is better, thus we reverse the order
-        sector_list = list(reversed(sector_list))
-        assert len(sector_list) > 0
-        return sector_list
+        z_score_df = self.get_sector_z_score(total_signal_df)
+        return z_score_df
 
-    def get_sector_signal_using_harmonic_average(
+    def agg_to_sector_signal_harmonic_average(
         self, sector_df: pl.DataFrame, signal_df: pl.DataFrame
     ) -> pl.DataFrame:
         """
@@ -104,7 +101,7 @@ class CapeSector(BaseSector):
         )
         return sector_signal_df
 
-    def get_security_signal(self, date):
+    def impl_security_signal(self, date):
         """
         aggregate history eps data and calulate security PE
         """

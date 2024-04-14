@@ -9,7 +9,14 @@ class FiftyTwoWeekHighSector(BaseSector):
     def __init__(self) -> None:
         self.price_table = "parquet/base/us_security_price_daily.parquet"
 
-    def get_security_signal(self, date):
+    def impl_sector_signal(self, observe_date):
+        sector_df = self.get_sector_construction()
+        security_signal_df = self.impl_security_signal(observe_date)
+        sector_signal_df = self.agg_to_sector_signal(sector_df, security_signal_df)
+        sector_signal_df = sector_signal_df.rename({"simple_avg_signal": "z-score"})
+        return sector_signal_df
+
+    def impl_security_signal(self, date):
         if date.month == 2 and date.day == 29:
             date = datetime.date(date.year, 2, 28)
         one_year_ago = datetime.date(
@@ -53,15 +60,3 @@ class FiftyTwoWeekHighSector(BaseSector):
         )
 
         return signal_df
-
-    def get_sector_list(self, observe_date):
-        sector_df = self.get_sector_construction()
-        security_signal_df = self.get_security_signal(observe_date)
-        sector_signal_df = self.get_sector_signal(sector_df, security_signal_df)
-        assert len(sector_signal_df) > 0
-        sector_list = (
-            sector_signal_df.sort("simple_avg_signal", descending=True)
-            .get_column("sector")
-            .to_list()
-        )
-        return sector_list

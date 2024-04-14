@@ -9,11 +9,12 @@ from src.security_symbol import SecurityTicker
 class FiftyTwoWeekHighEtfSector(BaseSector):
     def __init__(self, security_universe, date) -> None:
         price_base_table = "parquet/ticker/"
-
+        if date.month == 2 and date.day == 29:
+            date = datetime.date(date.year, 2, 28)
         one_year_ago = datetime.date(
             date.year - 1, date.month, date.day
         ) - datetime.timedelta(days=7)
-        # only support SecurityTicker for now
+        # only support SecurityTicker
         assert type(security_universe[0]) == SecurityTicker
         price_list = []
         for security in security_universe:
@@ -29,7 +30,14 @@ class FiftyTwoWeekHighEtfSector(BaseSector):
             price_list.append(price_df)
         self.price_df = pl.concat(price_list, how="vertical")
 
-    def get_security_signal(self, date):
+    def impl_sector_signal(self, observe_date):
+        sector_signal_df = self.impl_security_signal(observe_date)
+        sector_signal_df = sector_signal_df.rename(
+            {"signal": "z-score", "ticker": "sector"}
+        )
+        return sector_signal_df
+
+    def impl_security_signal(self, date):
         max_price_df = (
             self.price_df.with_columns(
                 ((date - pl.col("date")) / datetime.timedelta(days=7))
@@ -60,13 +68,3 @@ class FiftyTwoWeekHighEtfSector(BaseSector):
             .select(pl.col("ticker"), pl.col("date"), pl.col("signal"))
         )
         return signal_df
-
-    def get_sector_list(self, observe_date):
-        sector_signal_df = self.get_security_signal(observe_date)
-        assert len(sector_signal_df) > 0
-        ticker_list = (
-            sector_signal_df.sort("signal", descending=True)
-            .get_column("ticker")
-            .to_list()
-        )
-        return ticker_list
