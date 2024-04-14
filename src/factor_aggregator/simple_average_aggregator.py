@@ -39,9 +39,9 @@ class SimpleAverageAggregator(FactorAggregator):
             pl.when(pl.col("class_name") == "RoeSector")
             .then(pl.col("z-score"))
             .when(pl.col("class_name") == "VolumeSector")
-            .then(1 / pl.col("z-score"))  # reversed signal
+            .then((-pl.col("z-score").exp()))  # reversed signal
             .when(pl.col("class_name") == "SalesGrowthSector")
-            .then(1 / pl.col("z-score"))  # reversed signal
+            .then((-pl.col("z-score")).exp())  # reversed signal
             .otherwise(None)
         )
 
