@@ -1,13 +1,14 @@
 import datetime
+
+import joblib
 import polars as pl
 from sklearn.linear_model import Lasso
-import joblib
 
 from src.factor_aggregator.factor_aggregator import FactorAggregator
+from src.market import Market
 from src.sector.roe import RoeSector
 from src.sector.sales_growth import SalesGrowthSector
 from src.sector.volume import VolumeSector
-from src.market import Market
 
 
 class LassoAggregator(FactorAggregator):
@@ -31,11 +32,11 @@ class LassoAggregator(FactorAggregator):
         ).with_columns(pl.col("date").dt.month_end().alias("date"))
         sector_score_df = sector_score_df.pivot(
             index=["sector", "date"], columns="class_name", values="z-score"
-        )
+        ).drop_nulls()
         lasso_predict_reuturn = pl.DataFrame(
             {
                 "lasso_predict_return": self.lasso_model.predict(
-                    sector_score_df.select(self.feature_names)
+                    sector_score_df.select(self.feature_names) * 1000
                 )
             }
         )
@@ -69,7 +70,7 @@ class LassoModel:
         self.security_universe = security_universe
         self.lasso_aggregator = lasso_aggregator
         self.market = market
-        self.model = Lasso(alpha=0.1)
+        self.model = Lasso(alpha=1, fit_intercept=False)
         self.melt_X = self.get_melt_X()
         self.fill_in_melt_X()
         self.X, self.y = self.get_X_and_y()
@@ -172,7 +173,9 @@ class LassoModel:
         return X, y
 
     def train_model(self):
-        self.model.fit(self.X.select(self.lasso_aggregator.feature_names), self.y)
+        self.model.fit(
+            self.X.select(self.lasso_aggregator.feature_names) * 1000, self.y * 1e6
+        )
 
     def save_model(self):
         joblib.dump(self.model, "lasso_model.pkl")
