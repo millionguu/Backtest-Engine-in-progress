@@ -18,7 +18,7 @@ class FactorAggregator(BaseFactor):
     def get_fund_list(self, date):
         pass
 
-    def get_sector_scores(self, observe_date):
+    def get_sector_scores(self, observe_date, normal_signal, reversed_signal):
         sector_score_list = []
         for sector in self.sectors:
             sector_score_df = sector.impl_sector_signal(observe_date)
@@ -31,5 +31,25 @@ class FactorAggregator(BaseFactor):
                 pl.col("class_name"),
             )
             sector_score_list.append(sector_score_df)
-        sector_score_df = pl.concat(sector_score_list)
+        original_sector_score_df = pl.concat(sector_score_list)
+
+        # normallize score across factor class
+        sector_score_df = original_sector_score_df.with_columns(
+            pl.when(pl.col("class_name").is_in(normal_signal))
+            .then(pl.col("z-score"))
+            .when(pl.col("class_name").is_in(reversed_signal))
+            .then(-pl.col("z-score"))
+            .otherwise(None)
+        )
+
+        # normalize for different class
+        stat_df = sector_score_df.group_by("class_name").agg(
+            pl.col("z-score").mean().alias("mean"),
+            pl.col("z-score").std().alias("std"),
+        )
+        sector_score_df = sector_score_df.join(
+            stat_df, on="class_name", how="inner"
+        ).with_columns(
+            ((pl.col("z-score") - pl.col("mean")) / pl.col("std")).alias("z-score")
+        )
         return sector_score_df

@@ -10,7 +10,7 @@ class BackTest:
         self.strategy = strategy
         self.market = market
         self.rebalance = rebalance
-        self.prev_rebalance_index = self.iter_index
+        self.prev_rebalance_index = 0
 
     def run(self):
         last_index = self.portfolio.value_book[-1]["index"]
