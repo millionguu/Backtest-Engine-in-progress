@@ -1,6 +1,7 @@
 import datetime
 import polars as pl
 from sklearn.linear_model import Lasso
+import joblib
 
 from src.factor_aggregator.factor_aggregator import FactorAggregator
 from src.sector.roe import RoeSector
@@ -12,7 +13,10 @@ from src.market import Market
 class LassoAggregator(FactorAggregator):
     def __init__(self, security_universe, factor_type):
         super().__init__(security_universe, factor_type)
-        self.lasso_model = None
+        self.lasso_model = joblib.load("lasso_model.pkl")
+        self.feature_names = ["RoeSector", "VolumeSector", "SalesGrowthSector"]
+        self.normal_factors = ["RoeSector"]
+        self.reversed_factors = ["VolumeSector", "SalesGrowthSector"]
 
     def get_internal_sectors(self):
         roe = RoeSector()
@@ -22,12 +26,24 @@ class LassoAggregator(FactorAggregator):
 
     def get_fund_list(self, date):
         assert self.lasso_model is not None
-        sector_score_df = self.get_normalized_score(date)
-        sector_score_df = sector_score_df.group_by("sector").agg(
-            pl.col("z-score").mean()
+        sector_score_df: pl.DataFrame = self.get_sector_scores(
+            date, self.normal_factors, self.reversed_factors
+        ).with_columns(pl.col("date").dt.month_end().alias("date"))
+        sector_score_df = sector_score_df.pivot(
+            index=["sector", "date"], columns="class_name", values="z-score"
+        )
+        lasso_predict_reuturn = pl.DataFrame(
+            {
+                "lasso_predict_return": self.lasso_model.predict(
+                    sector_score_df.select(self.feature_names)
+                )
+            }
+        )
+        sector_score_df = pl.concat(
+            [sector_score_df, lasso_predict_reuturn], how="horizontal"
         )
         sector_list = (
-            sector_score_df.sort(pl.col("z-score"), descending=True)
+            sector_score_df.sort(pl.col("lasso_predict_return"), descending=True)
             .get_column("sector")
             .to_list()
         )
@@ -87,7 +103,9 @@ class LassoModel:
         sector_score_list = []
         for observe_date in self.end_date_list:
             sector_score_df = self.lasso_aggregator.get_sector_scores(
-                observe_date, ["RoeSector"], ["VolumeSector", "SalesGrowthSector"]
+                observe_date,
+                self.lasso_aggregator.normal_factors,
+                self.lasso_aggregator.reversed_factors,
             )
             sector_score_df = sector_score_df.select(
                 "sector", "date", "z-score", "class_name"
@@ -148,22 +166,22 @@ class LassoModel:
             columns="class_name",
             values="z-score",
             aggregate_function="max",
-        )
+        ).drop_nulls()
         y = X.select("forward_1mo_return")
         X = X.select(pl.all().exclude("forward_1mo_return"))
         return X, y
 
-    def tain(self):
-        pass
+    def train_model(self):
+        self.model.fit(self.X.select(self.lasso_aggregator.feature_names), self.y)
 
-    def eval(self):
-        pass
+    def save_model(self):
+        joblib.dump(self.model, "lasso_model.pkl")
 
 
 if __name__ == "__main__":
     from src.fund_universe import ISHARE_SECTOR_ETF_TICKER
 
-    start_date = datetime.date(2020, 12, 31)
+    start_date = datetime.date(2012, 12, 31)
     end_date = datetime.date(2023, 10, 31)
     security_universe = ISHARE_SECTOR_ETF_TICKER
     market = Market(security_universe, start_date, end_date)
@@ -171,4 +189,7 @@ if __name__ == "__main__":
     model = LassoModel(
         security_universe, start_date, end_date, lasso_aggregator, market
     )
-    print()
+    model.train_model()
+    print("lasso coef:", model.model.coef_)
+    print("lasso intercept:", model.model.intercept_)
+    model.save_model()
