@@ -14,6 +14,9 @@ class FiftyTwoWeekHighSector(BaseSector):
         security_signal_df = self.impl_security_signal(observe_date)
         sector_signal_df = self.agg_to_sector_signal(sector_df, security_signal_df)
         sector_signal_df = sector_signal_df.rename({"simple_avg_signal": "z-score"})
+        sector_signal_df = sector_signal_df.with_columns(
+            pl.col("z-score").cast(pl.Float64).alias("z-score")
+        )
         return sector_signal_df
 
     def impl_security_signal(self, date):

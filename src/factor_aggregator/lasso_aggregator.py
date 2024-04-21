@@ -6,6 +6,8 @@ from sklearn.linear_model import Lasso
 
 from src.factor_aggregator.factor_aggregator import FactorAggregator
 from src.market import Market
+from src.sector.dividend_yield import DividendYieldSector
+from src.sector.fifty_two_week_high import FiftyTwoWeekHighSector
 from src.sector.roe import RoeSector
 from src.sector.sales_growth import SalesGrowthSector
 from src.sector.volume import VolumeSector
@@ -15,15 +17,27 @@ class LassoAggregator(FactorAggregator):
     def __init__(self, security_universe, factor_type):
         super().__init__(security_universe, factor_type)
         self.lasso_model = joblib.load("lasso_model.pkl")
-        self.feature_names = ["RoeSector", "VolumeSector", "SalesGrowthSector"]
-        self.normal_factors = ["RoeSector"]
+        self.feature_names = [
+            "RoeSector",
+            "VolumeSector",
+            "SalesGrowthSector",
+            "FiftyTwoWeekHighSector",
+            "DividendYieldSector",
+        ]
+        self.normal_factors = [
+            "RoeSector",
+            "FiftyTwoWeekHighSector",
+            "DividendYieldSector",
+        ]
         self.reversed_factors = ["VolumeSector", "SalesGrowthSector"]
 
     def get_internal_sectors(self):
         roe = RoeSector()
         volume = VolumeSector()
         sales_growth = SalesGrowthSector()
-        return [roe, volume, sales_growth]
+        fifty_two_week_high = FiftyTwoWeekHighSector()
+        dividend_yield = DividendYieldSector()
+        return [roe, volume, sales_growth, fifty_two_week_high, dividend_yield]
 
     def get_fund_list(self, date):
         assert self.lasso_model is not None
