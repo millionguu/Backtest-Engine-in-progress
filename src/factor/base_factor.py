@@ -33,4 +33,4 @@ class BaseFactor(ABC):
 
     @abstractmethod
     def get_fund_list(self, date):
-        pass
+        raise NotImplementedError()

@@ -47,7 +47,7 @@ class BaseSector(ABC):
         should have a column named signal
         aggregate on security's history data to get the signal
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def impl_sector_signal(self, observe_date):
@@ -56,7 +56,7 @@ class BaseSector(ABC):
         should have a column named signal
         aggregate on security's level to get the signal
         """
-        pass
+        raise NotImplementedError()
 
     def get_sector_list(self, observe_date):
         """

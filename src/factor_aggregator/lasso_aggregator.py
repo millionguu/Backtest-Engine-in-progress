@@ -70,7 +70,7 @@ class LassoModel:
         self.security_universe = security_universe
         self.lasso_aggregator = lasso_aggregator
         self.market = market
-        self.model = Lasso(alpha=1, fit_intercept=False)
+        self.model = Lasso(alpha=0.99, fit_intercept=False)
         self.melt_X = self.get_melt_X()
         self.fill_in_melt_X()
         self.X, self.y = self.get_X_and_y()
@@ -193,6 +193,7 @@ if __name__ == "__main__":
         security_universe, start_date, end_date, lasso_aggregator, market
     )
     model.train_model()
+    print("feature names:", model.model.feature_names_in_)
     print("lasso coef:", model.model.coef_)
     print("lasso intercept:", model.model.intercept_)
     model.save_model()

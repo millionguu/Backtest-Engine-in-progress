@@ -12,11 +12,11 @@ class FactorAggregator(BaseFactor):
 
     @abstractmethod
     def get_internal_sectors(self):
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_fund_list(self, date):
-        pass
+        raise NotImplementedError()
 
     def get_sector_scores(self, observe_date, normal_signal, reversed_signal):
         sector_score_list = []

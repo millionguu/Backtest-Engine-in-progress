@@ -23,7 +23,7 @@ class Strategy(ABC):
 
     @abstractmethod
     def get_order(self, security, iter_index):
-        pass
+        raise NotImplementedError()
 
 
 class NoStrategy(Strategy):
