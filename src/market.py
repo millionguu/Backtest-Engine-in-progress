@@ -135,12 +135,13 @@ class Market:
             .filter(pl.col("date") >= start_date)
             .filter(pl.col("date") <= end_date)
             .filter(pl.col("return").is_not_null())
-            .select(pl.col("return").sum().alias("return"))
+            .sort(pl.col("date"))
+            .get_column("adj close")
         )
-        if len(res) == 1 and abs(res.get_column("return").item(0)) < 5:
-            return res.get_column("return").item(0)
+        range_return = res.item(-1) / res.item(0) - 1
+        if len(res) > 1 and range_return < 1:
+            return range_return
         else:
-            # print(f"not found return value for {security} at {date}.")
             return 0
 
     def query_sedol_range_return(self, security, start_date, end_date):
@@ -155,11 +156,10 @@ class Market:
         if len(res) == 1 and abs(res.get_column("return").item(0)) < 5:
             return res.get_column("return").item(0)
         else:
-            # print(f"not found return value for {security} at {date}.")
             return 0
 
     def query_lipper_range_return(self, security, start_date, end_date):
-        raise ValueError("no implementation")
+        raise NotImplementedError("no implementation for lipper id")
 
 
 if __name__ == "__main__":

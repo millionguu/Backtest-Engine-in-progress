@@ -13,6 +13,7 @@ numpy = "^1.26.4"
 matplotlib = "^3.8.3"
 yfinance = "^0.2.37"
 jupyterlab = "^4.1.5"
+scikit-learn = "^1.4.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.3.0"

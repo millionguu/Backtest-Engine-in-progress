@@ -8,7 +8,9 @@ class WeightedAverageAggregator(SimpleAverageAggregator):
         super().__init__(security_universe, factor_type)
 
     def get_fund_list(self, date):
-        sector_score_df: pl.DataFrame = self.get_normalized_score(date)
+        sector_score_df: pl.DataFrame = self.get_sector_scores(
+            date, ["RoeSector"], ["VolumeSector", "SalesGrowthSector"]
+        )
 
         sector_score_df = sector_score_df.with_columns(
             pl.when(pl.col("class_name") == "RoeSector")
