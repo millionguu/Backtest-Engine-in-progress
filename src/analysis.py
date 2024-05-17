@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 
 class Analysis:
@@ -22,7 +23,7 @@ class Analysis:
         self.dates = benchmark.get_column("date")
         self.benchmark_value = benchmark.get_column("value")
         self.benchmark_label = benchmark_label
-        _, self.ax = plt.subplots(1, 1, figsize=(10, 5))
+        self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
         self.mid_portfolio_value = None
         if mid_portfolio:
             mid_portfolio = mid_portfolio.value_book.join(
@@ -63,13 +64,59 @@ class Analysis:
             label="LONG - SHORT",
             color="tab:pink",
         )
-        step = self.dates.shape[0] // 30
-        self.ax.set_xticks(
-            ticks=self.dates[::step],
-            labels=self.dates[::step],
-            rotation=90,
-        )
+
+        formatter = mdates.DateFormatter("%Y")
+        locator = mdates.YearLocator()
+        self.ax.xaxis.set_major_formatter(formatter)
+        self.ax.xaxis.set_major_locator(locator)
+
         self.ax.grid(True)
         self.ax.legend()
         self.ax.set_title("Portofolio Return Relative to Benchmark")
+        self.ax.set_xlabel("Date")
+        self.ax.set_ylabel("Porfolio Value - Benchmark Value")
+        self.ax.tick_params(axis="x", labelrotation=15)
+        self.fig.savefig("image/report/backtest_result.pdf")
+        plt.show()
+
+    def draw_absolute(self):
+        self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
+        self.ax.plot(
+            self.dates,
+            self.long_portfolio_value,
+            label=f"LONG",
+            color="tab:green",
+        )
+        self.ax.plot(
+            self.dates,
+            self.short_portfolio_value,
+            label=f"SHORT",
+            color="tab:red",
+        )
+        if self.mid_portfolio_value is not None:
+            self.ax.plot(
+                self.dates,
+                self.mid_portfolio_value,
+                label=f"MID",
+                color="tab:brown",
+            )
+        self.ax.plot(
+            self.dates,
+            self.benchmark_value,
+            label=f"{self.benchmark_label}",
+            color="tab:blue",
+        )
+
+        formatter = mdates.DateFormatter("%Y")
+        locator = mdates.YearLocator()
+        self.ax.xaxis.set_major_formatter(formatter)
+        self.ax.xaxis.set_major_locator(locator)
+
+        self.ax.grid(True)
+        self.ax.legend()
+        self.ax.set_title("Portofolio Return")
+        self.ax.set_xlabel("Date")
+        self.ax.set_ylabel("Porfolio Value")
+        self.ax.tick_params(axis="x", labelrotation=15)
+        self.fig.savefig("image/report/backtest_result_absolute.pdf")
         plt.show()
