@@ -1,6 +1,7 @@
 import datetime
 
-from src.analysis import Analysis
+from src.analysis.metric import Metric
+from src.analysis.plot import Plot
 from src.backtest import BackTest
 from src.benchmark import Benchmark
 from src.factor.cape import CapeFactor
@@ -15,7 +16,6 @@ from src.factor_aggregator.simple_average_aggregator import SimpleAverageAggrega
 from src.factor_aggregator.weighted_average_aggregator import WeightedAverageAggregator
 from src.fund_universe import INVESCO_SECTOR_ETF_TICKER, ISHARE_SECTOR_ETF_TICKER
 from src.market import Market
-from src.metric import HitRate, InformationCoefficient, Metric
 from src.portfolio import Portfolio
 from src.rebalance import Rebalance
 from src.security_symbol import SecurityTicker
@@ -27,7 +27,7 @@ end_date = datetime.date(2023, 10, 31)
 security_universe = INVESCO_SECTOR_ETF_TICKER
 rebalance_period = 1
 rebalance_interval = "1mo"
-Factor = LassoAggregator
+Factor = SimpleAverageAggregator
 index_ticker = "^SPXEW" if security_universe == INVESCO_SECTOR_ETF_TICKER else "^SPX"
 benchmark = Benchmark(SecurityTicker(index_ticker, "index"), start_date, end_date)
 market = Market(security_universe, start_date, end_date)
@@ -80,25 +80,22 @@ rebalance = Rebalance(
 backtest = BackTest(mid_portfolio, strategy, market, rebalance)
 backtest.run()
 
+### Metric
+benchmark_performance = benchmark.get_performance()
+long_metric = Metric(long_portfolio.value_book, benchmark_performance)
+print(long_metric.portfolio_annual_return_report())
+
+print(long_metric.t_test_against_benchmark("day"))
+print(long_metric.t_test_against_benchmark("month"))
+print(long_metric.t_test_against_benchmark("year"))
 
 ### plot
-benchmark_performance = benchmark.get_performance()
 
-metric = Metric(long_portfolio, benchmark_performance)
-print(f"portfolio annulized return: {metric.portfolio_annualized_return()}")
-print(
-    f"portfolio annulized return relative to benchmark: {metric.annualized_return_relative_to_benchmark()}"
-)
-print(f"information ratio: {metric.information_ratio()}")
-print(f"average monthly turnover: {metric.avg_monthly_turnover()}")
-print(f"sharpe ratio(with risk-free rate 0.04): {metric.sharpe_ratio()}")
-
-
-analysis = Analysis(
+plot = Plot(
     long_portfolio,
     short_portfolio,
     benchmark_performance,
     index_ticker[1:],
     mid_portfolio,
 )
-analysis.draw()
+plot.draw()

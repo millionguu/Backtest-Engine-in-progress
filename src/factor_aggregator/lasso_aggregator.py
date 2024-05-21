@@ -22,14 +22,14 @@ class LassoAggregator(FactorAggregator):
             "RoeSector",
             "VolumeSector",
             "SalesGrowthSector",
-            "FiftyTwoWeekHighSector",
-            "DividendYieldSector",
+            # "FiftyTwoWeekHighSector",
+            # "DividendYieldSector",
             # "CapeSector",
         ]
         self.normal_factors = [
             "RoeSector",
-            "FiftyTwoWeekHighSector",
-            "DividendYieldSector",
+            # "FiftyTwoWeekHighSector",
+            # "DividendYieldSector",
             # "CapeSector",
         ]
         self.reversed_factors = ["VolumeSector", "SalesGrowthSector"]
@@ -38,15 +38,15 @@ class LassoAggregator(FactorAggregator):
         roe = RoeSector()
         volume = VolumeSector()
         sales_growth = SalesGrowthSector()
-        fifty_two_week_high = FiftyTwoWeekHighSector()
-        dividend_yield = DividendYieldSector()
+        # fifty_two_week_high = FiftyTwoWeekHighSector()
+        # dividend_yield = DividendYieldSector()
         # cape = CapeSector()
         return [
             roe,
             volume,
             sales_growth,
-            fifty_two_week_high,
-            dividend_yield,
+            # fifty_two_week_high,
+            # dividend_yield,
             # cape,
         ]
 
