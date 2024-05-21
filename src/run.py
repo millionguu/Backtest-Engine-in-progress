@@ -1,6 +1,6 @@
 import datetime
 
-from src.analysis import Analysis
+from src.analysis.plot import Plot
 from src.backtest import BackTest
 from src.benchmark import Benchmark
 from src.factor.cape import CapeFactor
@@ -15,7 +15,6 @@ from src.factor_aggregator.simple_average_aggregator import SimpleAverageAggrega
 from src.factor_aggregator.weighted_average_aggregator import WeightedAverageAggregator
 from src.fund_universe import INVESCO_SECTOR_ETF_TICKER, ISHARE_SECTOR_ETF_TICKER
 from src.market import Market
-from src.metric import HitRate, InformationCoefficient, Metric
 from src.portfolio import Portfolio
 from src.rebalance import Rebalance
 from src.security_symbol import SecurityTicker
@@ -84,21 +83,11 @@ backtest.run()
 ### plot
 benchmark_performance = benchmark.get_performance()
 
-metric = Metric(long_portfolio, benchmark_performance)
-print(f"portfolio annulized return: {metric.portfolio_annualized_return()}")
-print(
-    f"portfolio annulized return relative to benchmark: {metric.annualized_return_relative_to_benchmark()}"
-)
-print(f"information ratio: {metric.information_ratio()}")
-print(f"average monthly turnover: {metric.avg_monthly_turnover()}")
-print(f"sharpe ratio(with risk-free rate 0.04): {metric.sharpe_ratio()}")
-
-
-analysis = Analysis(
+plot = Plot(
     long_portfolio,
     short_portfolio,
     benchmark_performance,
     index_ticker[1:],
     mid_portfolio,
 )
-analysis.draw()
+plot.draw()

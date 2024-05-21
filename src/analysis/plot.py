@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 
 
-class Analysis:
+class Plot:
     def __init__(
         self,
         long_portfolio,
