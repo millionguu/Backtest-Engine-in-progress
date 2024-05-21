@@ -1,5 +1,6 @@
 import datetime
 
+from src.analysis.metric import Metric
 from src.analysis.plot import Plot
 from src.backtest import BackTest
 from src.benchmark import Benchmark
@@ -26,7 +27,7 @@ end_date = datetime.date(2023, 10, 31)
 security_universe = INVESCO_SECTOR_ETF_TICKER
 rebalance_period = 1
 rebalance_interval = "1mo"
-Factor = LassoAggregator
+Factor = SimpleAverageAggregator
 index_ticker = "^SPXEW" if security_universe == INVESCO_SECTOR_ETF_TICKER else "^SPX"
 benchmark = Benchmark(SecurityTicker(index_ticker, "index"), start_date, end_date)
 market = Market(security_universe, start_date, end_date)
@@ -79,9 +80,16 @@ rebalance = Rebalance(
 backtest = BackTest(mid_portfolio, strategy, market, rebalance)
 backtest.run()
 
+### Metric
+benchmark_performance = benchmark.get_performance()
+long_metric = Metric(long_portfolio.value_book, benchmark_performance)
+print(long_metric.portfolio_annual_return_report())
+
+print(long_metric.t_test_against_benchmark("day"))
+print(long_metric.t_test_against_benchmark("month"))
+print(long_metric.t_test_against_benchmark("year"))
 
 ### plot
-benchmark_performance = benchmark.get_performance()
 
 plot = Plot(
     long_portfolio,

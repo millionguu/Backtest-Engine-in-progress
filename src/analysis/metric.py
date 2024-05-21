@@ -62,6 +62,9 @@ class Metric:
         return report
 
     def portfolio_annual_return_report(self, level="year"):
+        cfg = pl.Config()
+        cfg.set_tbl_rows(20)
+        cfg.set_float_precision(1)
         portfolio_report = self._portfolio_return_report(
             self.portfolio, "portfolio_return", level
         )
